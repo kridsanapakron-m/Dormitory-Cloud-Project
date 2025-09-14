@@ -1,1 +1,4 @@
 # Backend .gitignore
+./node_modules
+.env
+dormitory.db
