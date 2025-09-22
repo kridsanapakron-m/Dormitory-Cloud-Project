@@ -35,6 +35,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/api";
 
 type RoomType = {
   id: number;
@@ -81,7 +82,7 @@ const RoomManagementPage = () => {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const response = await fetch("http://localhost:3000/rooms/", {
+        const response = await apiFetch("/rooms/", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -247,7 +248,7 @@ const RoomManagementPage = () => {
     console.log(requestData);
 
     try {
-      const response = await fetch("http://localhost:3000/rooms/", {
+      const response = await apiFetch("/rooms/", {
         method: "POST",
         credentials: "include",
         headers: {
@@ -265,7 +266,7 @@ const RoomManagementPage = () => {
       }
 
       const data = await response.json();
-      const refetchResponse = await fetch("http://localhost:3000/rooms/", {
+      const refetchResponse = await apiFetch("/rooms/", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -369,8 +370,8 @@ const RoomManagementPage = () => {
     console.log(requestData);
 
     try {
-      const response = await fetch(
-        `http://localhost:3000/rooms/${editFormData.id}`,
+      const response = await apiFetch(
+        `/rooms/${editFormData.id}`,
         {
           method: "PUT",
           credentials: "include",
@@ -388,7 +389,7 @@ const RoomManagementPage = () => {
           `Failed to update room: ${response.status} - ${errorData.message}`
         );
       }
-      const refetchResponse = await fetch("http://localhost:3000/rooms/", {
+      const refetchResponse = await apiFetch("/rooms/", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -429,8 +430,8 @@ const RoomManagementPage = () => {
     if (!editFormData) return;
 
     try {
-      const response = await fetch(
-        `http://localhost:3000/rooms/${editFormData.id}`,
+      const response = await apiFetch(
+        `/rooms/${editFormData.id}`,
         {
           method: "DELETE",
           credentials: "include",
@@ -447,7 +448,7 @@ const RoomManagementPage = () => {
           `Failed to delete room: ${response.status} - ${errorData.message}`
         );
       }
-      const refetchResponse = await fetch("http://localhost:3000/rooms/", {
+      const refetchResponse = await apiFetch("/rooms/", {
         method: "GET",
         credentials: "include",
         headers: {

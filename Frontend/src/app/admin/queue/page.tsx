@@ -59,6 +59,7 @@ import {
 import { ITEMS_PER_PAGE } from "@/components/data";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/api";
 
 interface QueueItem {
   id: number;
@@ -106,7 +107,7 @@ const AdminQueue = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch("http://localhost:3000/queue", {
+        const response = await apiFetch("/queue", {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -242,8 +243,8 @@ const AdminQueue = () => {
 
   const fetchAvailableRooms = async (roomType: string) => {
     try {
-      const response = await fetch(
-        `http://localhost:3000/queue/vacant/${roomType}`,
+      const response = await apiFetch(
+        `/queue/vacant/${roomType}`,
         {
           method: "GET",
           headers: {
@@ -279,7 +280,7 @@ const AdminQueue = () => {
     }
 
     try {
-      const assignResponse = await fetch("http://localhost:3000/assignByq", {
+      const assignResponse = await apiFetch("/assignByq", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -459,7 +460,7 @@ const AdminQueue = () => {
                         <div className="flex items-center gap-2">
                           <CalendarIcon size={16} className="text-gray-500" />
                           <span className="text-sm">
-                            {item.preferredDate.toLocaleDateString("th-TH", {
+                            {item.queueDate.toLocaleDateString("th-TH", {
                               weekday: "short",
                               day: "numeric",
                               month: "short",

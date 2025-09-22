@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { apiFetch } from "@/lib/api";
 
 const EditProfilePage = () => {
   const router = useRouter();
@@ -41,7 +42,7 @@ const EditProfilePage = () => {
     const fetchUserProfile = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`http://localhost:3000/auth/profile`, {
+        const response = await apiFetch(`/auth/profile`, {
           headers: {
             'Content-Type': 'application/json',
           }, credentials: 'include',
@@ -110,7 +111,7 @@ const EditProfilePage = () => {
         address: profile.address,
         userImg: profile.userimg || "", 
       };
-      const response = await fetch("http://localhost:3000/auth/edit", {
+      const response = await apiFetch("/auth/edit", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

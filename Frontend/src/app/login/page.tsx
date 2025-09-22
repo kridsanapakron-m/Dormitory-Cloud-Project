@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { LoginData } from '@/components/types';
 import { VALIDATION_MESSAGES } from '@/components/data';
 import { toast } from "sonner"
+import { apiFetch } from "@/lib/api";
 
 const Signin = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -30,7 +31,7 @@ const Signin = () => {
           throw new Error('รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร');
         }
   
-        const response = await fetch('http://localhost:3000/auth/login', {
+        const response = await apiFetch('/auth/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

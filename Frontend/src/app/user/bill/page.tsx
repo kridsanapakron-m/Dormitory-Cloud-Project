@@ -41,7 +41,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-
+import { apiFetch } from "@/lib/api";
 
 type Transaction = {
   id: number;
@@ -71,7 +71,7 @@ const BillPage = () => {
   const router = useRouter();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   useEffect(() => {
-    fetch("http://localhost:3000/bills", {
+    apiFetch("/bills", {
       method: "GET",
       credentials: "include",
     })
@@ -129,7 +129,7 @@ const BillPage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (paymentStep !== "payment") return;
-    fetch(`http://localhost:3000/bills/${selectedTransaction?.id}/qr`, {
+    apiFetch(`/bills/${selectedTransaction?.id}/qr`, {
       method: "GET",
       credentials: "include",
     })
@@ -202,7 +202,7 @@ const BillPage = () => {
           "TransactionImg",
           new Blob([paymentFile], { type: paymentFile.type })
         );
-        fetch(`http://localhost:3000/bills/${selectedTransaction.id}/paying`, {
+        apiFetch(`/bills/${selectedTransaction.id}/paying`, {
           method: "PUT",
           body: formdata,
           credentials: "include",
@@ -276,7 +276,7 @@ const BillPage = () => {
       }
       
       try {
-        const response = await fetch(receiptUrl);
+        const response = await apiFetch(receiptUrl);
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         

@@ -51,7 +51,8 @@
    SelectValue,
  } from "@/components/ui/select";
  import { format } from "date-fns";
- 
+ import { apiFetch } from "@/lib/api";
+
  interface BasicUser {
    id: string;
    firstname: string;
@@ -87,7 +88,7 @@
    >({});
  
    const fetchData = async (url: string, options: RequestInit = {}) => {
-     const response = await fetch(url, {
+     const response = await apiFetch(url, {
        ...options,
        credentials: "include",
      });
@@ -103,7 +104,7 @@
  
    const fetchRooms = async () => {
      try {
-       const data = await fetchData(`http://localhost:3000/rooms`);
+       const data = await fetchData(`/rooms`);
        if (Array.isArray(data.rooms)) {
          setRooms(data.rooms);
        } else {
@@ -122,7 +123,7 @@
  
    const fetchUsers = async () => {
      try {
-       const data = await fetchData(`http://localhost:3000/auth/users`);
+       const data = await fetchData(`/auth/users`);
        if (Array.isArray(data)) {
          const basicUsers = data.map((user) => ({
            id: user.id,
@@ -150,7 +151,7 @@
  
    const fetchUserById = async (userId: string) => {
      try {
-       const data = await fetchData(`http://localhost:3000/auth/id/${userId}`, {
+       const data = await fetchData(`/auth/id/${userId}`, {
          method: "GET",
          credentials: "include",
        });
@@ -237,11 +238,11 @@
        let url, method, body;
  
        if (!inputTenantId || inputTenantId === "unassigned") {
-         url = `http://localhost:3000/rooms/${room.id}/clear`;
+         url = `/rooms/${room.id}/clear`;
          method = "PUT";
          body = undefined;
        } else {
-         url = `http://localhost:3000/rooms/${room.id}/assign`;
+         url = `/rooms/${room.id}/assign`;
          method = "PUT";
          body = JSON.stringify({ userId: inputTenantId });
        }
@@ -303,7 +304,7 @@
      if (!room) return;
  
      try {
-       await fetchData(`http://localhost:3000/rooms/${room.id}/clear`, {
+       await fetchData(`/rooms/${room.id}/clear`, {
          method: "PUT",
        });
  

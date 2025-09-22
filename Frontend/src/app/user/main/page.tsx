@@ -17,6 +17,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import SidebarUser from '@/components/SidebarUser';
 import Footer from '@/components/Footer';
+import { apiFetch } from "@/lib/api";
 
 const UserMain = () => {
   const [userProfile, setUserProfile] = useState({
@@ -117,7 +118,7 @@ const UserMain = () => {
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        const response = await fetch('http://localhost:3000/auth/profile', { 
+        const response = await apiFetch('/auth/profile', { 
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -150,7 +151,7 @@ const UserMain = () => {
     // New function to fetch bills
     const fetchBills = async () => {
       try {
-        const response = await fetch('http://localhost:3000/bills', {
+        const response = await fetch('/bills', {
           method: 'GET',
           credentials: 'include'
         });

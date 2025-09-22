@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { apiFetch } from "@/lib/api";
 
 // Message type
 type Message = {
@@ -50,7 +51,7 @@ const ChatPage = () => {
       setShowLoading(true);
       setError(null);
       try {
-        const response = await fetch('http://localhost:3000/chat', {
+        const response = await apiFetch('/chat', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json', 
@@ -100,7 +101,7 @@ const ChatPage = () => {
     setShowLoading(true);
     setError(null);
     try {
-      const response = await fetch('http://localhost:3000/chat', { 
+      const response = await apiFetch('/chat', { 
         method: 'POST',
         headers: {
           'Content-Type': 'application/json', 

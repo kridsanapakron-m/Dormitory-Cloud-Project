@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { RegisterFormData } from '@/components/types';
 import { VALIDATION_MESSAGES } from '@/components/data';
 import { toast } from "sonner"
+import { apiFetch } from "@/lib/api";
 
 const Register = () => {
   const [showPassword, setShowPassword] =  useState<boolean>(false);
@@ -53,7 +54,7 @@ const Register = () => {
         throw new Error('กรุณากรอกหมายเลขโทรศัพท์ให้ถูกต้อง (เช่น 0812345678)');
       }
 
-      const response = await fetch('http://localhost:3000/auth/register', {
+      const response = await apiFetch('/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
