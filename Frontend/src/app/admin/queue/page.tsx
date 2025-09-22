@@ -388,7 +388,7 @@ const AdminQueue = () => {
                     <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
                         <div>
-                          <CardTitle>{item.name}</CardTitle>
+                          <CardTitle>{item.email}</CardTitle>
                         </div>
                         <div>
                           <AnimatePresence mode="wait">
@@ -460,7 +460,7 @@ const AdminQueue = () => {
                         <div className="flex items-center gap-2">
                           <CalendarIcon size={16} className="text-gray-500" />
                           <span className="text-sm">
-                            {item.queueDate.toLocaleDateString("th-TH", {
+                            {new Date(item.queueDate).toLocaleString("th-TH", {
                               weekday: "short",
                               day: "numeric",
                               month: "short",
