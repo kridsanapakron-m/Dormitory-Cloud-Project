@@ -1,7 +1,0 @@
-{
-  "/user/queue/page": "app/user/queue/page.js",
-  "/admin/utility/page": "app/admin/utility/page.js",
-  "/admin/tenant/page": "app/admin/tenant/page.js",
-  "/admin/cleaning/page": "app/admin/cleaning/page.js",
-  "/login/page": "app/login/page.js"
-}
