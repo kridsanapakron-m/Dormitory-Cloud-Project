@@ -5,6 +5,7 @@ import {
   Users,
   Home,
   FileText,
+  Package,
   Bell,
   Settings,
   DollarSign,
@@ -106,19 +107,11 @@ const AdminMain = () => {
     {
       id: 3,
       title: "บันทึกค่าสาธารณูปโภค",
-      description: "ดุแลค่าสาธารณูประโภคผู้เข้าพัก",
+      description: "ดูแลค่าสาธารณูประโภคผู้เข้าพัก",
       icon: <DollarSign className="h-8 w-8 text-purple-500" />,
       path: "/admin/utility ",
       color: "bg-purple-50 hover:bg-purple-100",
     },
-    // {
-    //   id: 4,
-    //   title: "จัดการผู้ใช้งาน",
-    //   description: "จัดการรหัสผู้เช่าห้องพัก",
-    //   icon: <Settings className="h-8 w-8 text-orange-500" />,
-    //   path: "/admin/user",
-    //   color: "bg-orange-50 hover:bg-orange-100",
-    // },
     {
       id: 5,
       title: "คิวเข้าดูหอพัก",
@@ -134,6 +127,14 @@ const AdminMain = () => {
       icon: <FileText className="h-8 w-8 text-indigo-500" />,
       path: "/admin/cleaning",
       color: "bg-indigo-50 hover:bg-indigo-100",
+    },
+    {
+      id:7,
+      title: "จัดการพัสดุ",
+      description: "ดูเเลจัดการพัสดุของผู้เข้าพัก",
+      icon: <Package className="h-8 w-8 text-orange-500" />,
+      path: "/admin/parcel",
+      color: "bg-orange-50 hover:bg-orange-100",
     },
   ];
 

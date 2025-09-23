@@ -71,7 +71,7 @@ export default function Footer() {
           
           {/* Copyright */}
           <div className="border-t border-purple-200 mt-8 pt-8 text-center">
-            <p>ทำด้วย 💖 โดย 66070055, 66070220, 66070006, 66070245</p>
+            <p>ทำด้วย 💖 โดย 66070006, 66070055, 66070124</p>
           </div>
         </div>
       </footer>

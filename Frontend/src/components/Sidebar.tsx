@@ -13,6 +13,7 @@ import {
   HelpCircle,
   Menu,
   Bell,
+  Package
 } from "lucide-react";
 import {
   Sheet,
@@ -23,6 +24,7 @@ import {
   SheetDescription
 } from "@/components/ui/sheet";
 import { toast } from 'sonner';
+import { title } from 'process';
 
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -70,6 +72,11 @@ const Sidebar = ({ className }: SidebarProps) => {
       title: "บันทึกค่าสาธารณูปโภค",
       icon: DollarSign,
       href: "/admin/utility"
+    },
+    {
+      title: "จัดการพัสดุ",
+      icon: Package,
+      href: "/admin/parcel"
     }
   ];
 
