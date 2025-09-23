@@ -138,7 +138,7 @@ const UserMain = () => {
             name: `${data.firstname} ${data.lastname}`,
             email: data.email,
             phone: data.telephone,
-            profileImage: data.userImg || "/profile/default-profile.jpg",
+            profileImage: data.userImg || "/profile/annonymous.jpg",
             roomNumber: data.roomName,
             roomType: data.roomTypeId
         }));
@@ -151,7 +151,7 @@ const UserMain = () => {
     // New function to fetch bills
     const fetchBills = async () => {
       try {
-        const response = await fetch('/bills', {
+        const response = await apiFetch('/bills', {
           method: 'GET',
           credentials: 'include'
         });

@@ -7,7 +7,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Search, Plus, CheckCircle, Clock, Home } from "lucide-react";
+import {
+    Search,
+    Plus,
+    CheckCircle,
+    Clock,
+    Home,
+    ImagePlus,
+    Smile,
+    ImageIcon
+    
+} from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -162,30 +172,29 @@ const ParcelPage = () => {
                 <Sidebar />
                 <main className="flex-1 overflow-auto">
                     <div className="p-6 pt-16 md:pt-6 container mx-auto">
-                    
+
                         {/* Header */}
                         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-3">
-                        <h1 className="text-2xl font-bold">จัดการพัสดุ</h1>
+                            <h1 className="text-2xl font-bold">จัดการพัสดุ</h1>
 
-                        <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto items-center">
-                            {/* Search */}
-                            <div className="relative w-full md:w-64">
-                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                            <Input
-                                placeholder="ค้นหาหมายเลขห้อง..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-9"
-                            />
+                            <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto items-center">
+                                {/* Search */}
+                                <div className="relative w-full md:w-64">
+                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+                                    <Input
+                                        placeholder="ค้นหาหมายเลขห้อง..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="pl-9"
+                                    />
+                                </div>
+
+                                {/* Add button */}
+                                <Button onClick={() => setIsAddDialogOpen(true)}>
+                                    <Plus className="h-4 w-4 mr-2" /> เพิ่มพัสดุ
+                                </Button>
                             </div>
-
-                            {/* Add button */}
-                            <Button onClick={() => setIsAddDialogOpen(true)}>
-                            <Plus className="h-4 w-4 mr-2" /> เพิ่มพัสดุ
-                            </Button>
                         </div>
-                        </div>
-                        
 
                         {/* Stats */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -203,7 +212,7 @@ const ParcelPage = () => {
                         <div className="bg-white rounded-md shadow-sm overflow-hidden">
                             {filteredData.length === 0 ? (
                                 <p className="p-6 text-gray-500 text-center">
-                                    ✅ ไม่มีพัสดุค้างอยู่
+                                    <Smile/>พัสดุทั้งหมดถูกจัดการแล้ว
                                 </p>
                             ) : (
                                 <table className="w-full">
@@ -249,7 +258,7 @@ const ParcelPage = () => {
                                                 <td className="px-4 py-3">
                                                     <Button size="sm" onClick={() => handlePickup(item.id)}>
                                                         <CheckCircle className="h-4 w-4 mr-1" />
-                                                        รับแล้ว
+                                                        รับเรียบร้อย
                                                     </Button>
                                                 </td>
                                             </tr>
@@ -283,10 +292,14 @@ const ParcelPage = () => {
                             />
                         </div>
                         <div>
-                            <Label>อัปโหลดรูปพัสดุ</Label>
+                            <Label className="mb-2 block">อัปโหลดรูปพัสดุ</Label>
+
+                            {/* Hidden file input */}
                             <Input
+                                id="parcelImage"
                                 type="file"
                                 accept="image/*"
+                                className="hidden"
                                 onChange={(e) => {
                                     const file = e.target.files?.[0];
                                     if (file) {
@@ -298,6 +311,15 @@ const ParcelPage = () => {
                                     }
                                 }}
                             />
+
+                            <Label
+                                htmlFor="parcelImage"
+                                className="flex cursor-pointer items-center gap-2 rounded-md bg-primary/10 px-4 py-2 text-primary hover:bg-primary/20 transition-colors w-fit"
+                            >
+                                <ImagePlus className="h-4 w-4" />
+                                เลือกรูปภาพ
+                            </Label>
+
                             {newParcel.previewUrl && (
                                 <div className="relative w-24 h-24 mt-2 border rounded-md overflow-hidden">
                                     <Image
@@ -309,6 +331,7 @@ const ParcelPage = () => {
                                 </div>
                             )}
                         </div>
+
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>ยกเลิก</Button>
@@ -323,7 +346,10 @@ const ParcelPage = () => {
             <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
                 <DialogContent className="sm:max-w-[600px]">
                     <DialogHeader>
-                        <DialogTitle>รูปพัสดุ</DialogTitle>
+                        <DialogTitle className="flex items-center gap-2">
+                            <ImageIcon className="h-5 w-5" />
+                            รูปพัสดุ
+                        </DialogTitle>
                         <DialogDescription>กดปิดเพื่อกลับไปหน้าหลัก</DialogDescription>
                     </DialogHeader>
                     <div className="relative w-full h-[400px]">
