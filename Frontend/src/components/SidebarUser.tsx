@@ -13,6 +13,7 @@ import {
   HelpCircle,
   Menu,
   PhoneCall,
+  Package
 } from "lucide-react";
 import {
   Sheet,
@@ -65,6 +66,12 @@ const SidebarUser = ({ className }: SidebarProps) => {
       icon: Users2,
       href: "/user/chat"
     },
+    {
+      title: "ติดตามพัสดุ",
+      icon: Package,
+      href: "/user/parcel"
+    },
+
   ];
 
   const isActive = (href: string) => {

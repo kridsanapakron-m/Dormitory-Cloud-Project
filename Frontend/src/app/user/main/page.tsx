@@ -11,7 +11,8 @@ import {
   Mail,
   CreditCard,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  Package
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -103,6 +104,14 @@ const UserMain = () => {
       path: '/user/chat',
       color: 'bg-red-50 hover:bg-red-100'
     },
+    { 
+      id: 6, 
+      title: "ติดตามพัสดุ",
+      description: "ตรวจสอบรายการพัสดุทั้งหมด",
+      icon: <Package className="h-8 w-8 text-orange-500" />,
+      path: "/user/parcel",
+      color: "bg-orange-50 hover:bg-orange-100",
+    }
   ];
 
   const currentHour = new Date().getHours();
