@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { db } = require('../db');
 const { verifyToken } = require('../middleware/auth.middleware');
-const axios = require('axios');
+const { createUser } = require('./auth');
 
 router.get("/", verifyToken, (req, res, next) => {
   if (req.user.role !== "admin") {
@@ -102,17 +102,12 @@ router.post("/", verifyToken, async (req, res, next) => {
       );
     });
 
-    // Call the /register endpoint in auth to create a user for this room
-    const registerResponse = await axios.post("http://localhost:3000/auth/register", {
-      username: `room_${newRoomId}`,
-      password: "Cisco123!"
-    });
+    const registerResponse = await createUser(`room_${newRoomId}`, "Cisco123!");
 
-    // Update the room with the newly created userId
     await new Promise((resolve, reject) => {
       db.run(
         `UPDATE room SET renterID = ? WHERE id = ?`,
-        [registerResponse.data.userId, newRoomId],
+        [registerResponse.userId, newRoomId],
         function (error) {
           if (error) return reject(error);
           resolve();
@@ -122,7 +117,7 @@ router.post("/", verifyToken, async (req, res, next) => {
 
     res.status(201).json({
       roomId: newRoomId,
-      user: registerResponse.data,
+      user: registerResponse,
     });
   } catch (error) {
     next(error);

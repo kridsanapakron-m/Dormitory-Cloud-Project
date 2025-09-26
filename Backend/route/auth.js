@@ -20,7 +20,45 @@ const generateAccessToken = (user) => {
   );
 };
 
-router.post("/register", verifyToken, (req, res, next) => {
+const createUser = (username, password) => {
+  return new Promise((resolve, reject) => {
+    if (!username || !password) {
+      return reject(new Error("กรุณากรอก username และ password"));
+    }
+
+    db.all(
+      "SELECT * FROM users WHERE username = ?",
+      [username],
+      (error, existingUsers) => {
+        if (error) {
+          return reject(error);
+        }
+
+        if (existingUsers.length > 0) {
+          return reject(new Error("username นี้มีอยู่ในระบบแล้ว"));
+        }
+
+        bcrypt.hash(password, 10, (err, hashedPassword) => {
+          if (err) {
+            return reject(err);
+          }
+
+          const sql = `INSERT INTO users (username, password, email, firstname, lastname, dob, address, telephone, createat, RoomID, role, userImg)
+                VALUES (?, ?, NULL, NULL, NULL, NULL, NULL, NULL, datetime('now'), NULL, 'user', NULL)`;
+
+          db.run(sql, [username, hashedPassword], function (error) {
+            if (error) {
+              return reject(error);
+            }
+            resolve({ message: "สมัครสำเร็จ", userId: this.lastID });
+          });
+        });
+      }
+    );
+  });
+};
+
+router.post("/register", verifyToken, async (req, res, next) => {
   const { username, password } = req.body;
   if (req.user.role !== "admin") {
     return res
@@ -28,39 +66,18 @@ router.post("/register", verifyToken, (req, res, next) => {
       .json({ message: "เฉพาะผู้ดูแลระบบที่สามารถใช้คำสั่งนี้ได้" });
   }
 
-  if (!username || !password) {
-    return res.status(400).json({ message: "กรุณากรอก username และ password" });
-  }
-
-  db.all(
-    "SELECT * FROM users WHERE username = ?",
-    [username],
-    (error, existingUsers) => {
-      if (error) {
-        return next(error);
-      }
-
-      if (existingUsers.length > 0) {
-        return res.status(409).json({ message: "username นี้มีอยู่ในระบบแล้ว" });
-      }
-
-      bcrypt.hash(password, 10, (err, hashedPassword) => {
-        if (err) {
-          return next(err);
-        }
-
-        const sql = `INSERT INTO users (username, password, email, firstname, lastname, dob, address, telephone, createat, RoomID, role, userImg)
-              VALUES (?, ?, NULL, NULL, NULL, NULL, NULL, NULL, datetime('now'), NULL, 'user', NULL)`;
-
-        db.run(sql, [username, hashedPassword], function (error) {
-          if (error) {
-            return next(error);
-          }
-          res.status(201).json({ message: "สมัครสำเร็จ", userId: this.lastID });
-        });
-      });
+  try {
+    const result = await createUser(username, password);
+    res.status(201).json(result);
+  } catch (error) {
+    if (error.message === "username นี้มีอยู่ในระบบแล้ว") {
+      return res.status(409).json({ message: error.message });
     }
-  );
+    if (error.message === "กรุณากรอก username และ password") {
+      return res.status(400).json({ message: error.message });
+    }
+    next(error);
+  }
 });
 router.post("/login", (req, res, next) => {
   const { userIdentifier, password } = req.body;
@@ -266,4 +283,4 @@ router.put("/reset-password/:userId", verifyToken, (req, res, next) => {
   });
 });
 
-module.exports = router;
+module.exports = { router, createUser };
