@@ -12,7 +12,6 @@ const generateAccessToken = (user) => {
       id: user.id,
       username: user.username,
       role: user.role,
-      firstname: user.firstname,
       room: user.RoomID,
     },
     config.jwt.secret,
@@ -20,8 +19,13 @@ const generateAccessToken = (user) => {
   );
 };
 
-router.post("/register", (req, res, next) => {
+router.post("/register", verifyToken, (req, res, next) => {
   const { username, password } = req.body;
+  if (req.user.role !== "admin") {
+    return res
+      .status(403)
+      .json({ message: "เฉพาะผู้ดูแลระบบที่สามารถใช้คำสั่งนี้ได้" });
+  }
 
   if (!username || !password) {
     return res.status(400).json({ message: "กรุณากรอก username และ password" });
