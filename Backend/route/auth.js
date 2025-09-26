@@ -13,6 +13,7 @@ const generateAccessToken = (user) => {
       username: user.username,
       role: user.role,
       room: user.RoomID,
+      email: user.email,
     },
     config.jwt.secret,
     { expiresIn: config.jwt.expiresIn }

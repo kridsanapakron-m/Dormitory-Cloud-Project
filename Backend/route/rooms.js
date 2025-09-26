@@ -264,124 +264,61 @@ router.put("/:roomId", verifyToken, (req, res, next) => {
 //   );
 // });
 
-// router.put("/:roomId/assign", verifyToken, (req, res, next) => {
-//   const { roomId } = req.params;
-//   const { userId } = req.body;
+router.put("/:roomId/assign", verifyToken, (req, res, next) => {
+  const { roomId } = req.params;
+  const { email } = req.body;
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ message: "เฉพาะผู้ดูแลระบบ" });
+  }
+  db.get(
+    `SELECT renterID FROM room WHERE id = ?`,
+    [roomId],
+    (error, roomRow) => {
+      if (error) {
+        return next(error);
+      }
+      if (!roomRow || !roomRow.renterID) {
+        return res.status(404).json({ message: "ไม่พบ renterID ของห้องนี้" });
+      }
+      db.get(
+        `SELECT username, password FROM users WHERE id = ?`,
+        [roomRow.renterID],
+        (error, userRow) => {
+          if (error) {
+            return next(error);
+          }
+          if (!userRow) {
+            return res.status(404).json({ message: "ไม่พบผู้ใช้ที่ตรงกับ renterID" });
+          }
+          db.run(
+            `UPDATE room SET available = 1 WHERE id = ?`,
+            [roomId],
+            function (error) {
+              if (error) {
+                return next(error);
+              }
+              res.status(200).json({ 
+                message: "แก้ไขห้องว่ามีผู้เช่าแล้ว",
+                username: userRow.username,
+              });
+            }
+          );
+        }
+      );
+    }
+  );
 
-//   if (!roomId || !userId) {
-//     return res.status(400).json({ message: "ระบบไม่ได้รับ" });
-//   }
+  // sent mail to email with username and password
+});
+router.put("/assignByq", verifyToken, (req, res, next) => {
+  const { email } = req.body;
 
-//   if (req.user.role !== "admin") {
-//     return res.status(403).json({ message: "เฉพาะผู้ดูแลระบบ" });
-//   }
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ message: "เฉพาะผู้ดูแลระบบ" });
+  }
+  //
+  // sent mail to userId
+  //
 
-//   db.get(
-//     `SELECT id FROM room WHERE renterID = ?`,
-//     userId,
-//     (error, userResult) => {
-//       if (error) {
-//         return next(error);
-//       }
-
-//       if (userResult) {
-//         return res.status(409).json({ message: "ผู้ใช้มีห้องพัก" });
-//       }
-
-//       db.run(
-//         `UPDATE room SET renterID = ? WHERE id = ?`,
-//         [userId, roomId],
-//         function (error) {
-//           if (error) {
-//             return next(error);
-//           }
-
-//           if (this.changes === 0) {
-//             return res.status(404).json({ message: "ไม่พบห้องในระบบ" });
-//           }
-
-//           db.run(
-//             `UPDATE users SET RoomID = ? WHERE id = ?`,
-//             [roomId, userId],
-//             function (error) {
-//               if (error) {
-//                 return next(error);
-//               }
-//               if (this.changes === 0) {
-//                 return res.status(404).json({ message: "ไม่พบผู้ใช้" });
-//               }
-//               res.status(200).json({ message: "เพิ่มผู้ใช้เข้าห้องพักสำเร็จ" });
-//             }
-//           );
-//         }
-//       );
-//     }
-//   );
-// });
-// router.put("/assignByq", verifyToken, (req, res, next) => {
-//   const { roomId, userId } = req.body;
-//   console.log(roomId, userId);
-//   if (!roomId || !userId) {
-//     return res
-//       .status(400)
-//       .json({ message: "ระบบไม่ได้ระบบ เลขห้องและรหัสประจำตัวผู้ใช้" });
-//   }
-
-//   if (req.user.role !== "admin") {
-//     return res.status(403).json({ message: "เฉพาะผู้ดูแลระบบ" });
-//   }
-//   db.get(
-//     `SELECT id FROM room WHERE renterID = ?`,
-//     userId,
-//     (error, userResult) => {
-//       if (error) {
-//         return next(error);
-//       }
-
-//       if (userResult) {
-//         return res.status(409).json({ message: "ผู้ใช้มีห้องอยู่แล้ว" });
-//       }
-//       db.run(
-//         `UPDATE room SET renterID = ? WHERE id = ?`,
-//         [userId, roomId],
-//         function (error) {
-//           if (error) {
-//             return next(error);
-//           }
-//           if (this.changes === 0) {
-//             return res.status(404).json({ message: "ไม่พบห้องในระบบ" });
-//           }
-
-//           db.run(
-//             `UPDATE users SET RoomID = ? WHERE id = ?`,
-//             [roomId, userId],
-//             function (error) {
-//               if (error) {
-//                 return next(error);
-//               }
-//               if (this.changes === 0) {
-//                 return res.status(404).json({ message: " ไม่พบผู้ใช้" });
-//               }
-//               db.run(
-//                 `DELETE FROM Queue WHERE userId = ?`,
-//                 [userId],
-//                 function (error) {
-//                   if (error) {
-//                     return next(error);
-//                   }
-//                   if (this.changes === 0) {
-//                     return res.status(404).json({ message: " ไม่พบคิว" });
-//                   }
-//                   res
-//                     .status(200)
-//                     .json({ message: "เพิ่มห้องให้ผู้ใช้เสร็จสิ้น" });
-//                 }
-//               );
-//             }
-//           );
-//         }
-//       );
-//     }
-//   );
-// });
+});
 module.exports = router;
