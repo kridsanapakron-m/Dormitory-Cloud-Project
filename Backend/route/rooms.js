@@ -222,6 +222,7 @@ router.put("/:roomId", verifyToken, (req, res, next) => {
     }
   );
 });
+
 // router.put("/:roomId/clear", verifyToken, (req, res, next) => {
 //   const { roomId } = req.params;
 //   if (req.user.role !== "admin") {
@@ -319,6 +320,61 @@ router.put("/assignByq", verifyToken, (req, res, next) => {
   //
   // sent mail to userId
   //
+
+});
+router.put("/:roomId/removetenant", verifyToken, (req, res, next) => {
+  const { roomId } = req.params;
+
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ message: "เฉพาะผู้ดูแลระบบ" });
+  }
+db.get(
+    `SELECT roomName FROM room WHERE id = ?`,
+    [roomId],
+    (error, roomRow) => {
+      if (error) {
+        return next(error);
+      }
+
+      if (!roomRow) {
+        return res.status(404).json({ message: "ไม่พบห้องในระบบ" });
+      }
+
+      const roomName = roomRow.roomName;
+      db.run(
+        `DELETE FROM bill WHERE RoomID = ?`,
+        [roomId],
+        function (error) {
+          if (error) {
+            return next(error);
+          }
+          db.run(
+            `DELETE FROM task WHERE roomid = ?`,
+            [roomId],
+            function (error) {
+              if (error) {
+                return next(error);
+              }
+
+              db.run(
+                `DELETE FROM percel WHERE roomName = ?`,
+                [roomName],
+                function (error) {
+                  if (error) {
+                    return next(error);
+                  }
+
+                  res.status(200).json({ 
+                    message: "ลบข้อมูลบิล งาน และพัสดุสำเร็จ",
+                  });
+                }
+              );
+            }
+          );
+        }
+      );
+    }
+  );
 
 });
 module.exports = router;
