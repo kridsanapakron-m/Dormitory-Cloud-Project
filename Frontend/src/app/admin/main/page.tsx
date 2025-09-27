@@ -7,7 +7,7 @@ import {
   FileText,
   Package,
   Bell,
-  Settings,
+  Settings2,
   DollarSign,
 } from "lucide-react";
 import Link from "next/link";
@@ -136,6 +136,15 @@ const AdminMain = () => {
       path: "/admin/parcel",
       color: "bg-orange-50 hover:bg-orange-100",
     },
+    {
+      id:8,
+      title: "ตั้งค่าระบบ",
+      description: "กำหนดค่าต่างๆของหอพัก",
+      icon: <Settings2 className="h-8 w-8 text-slate-500" />,
+      path: "/admin/setting",
+      color: "bg-lime-50 hover:bg-lime-100",
+    },
+    
   ];
 
   if (loading) {

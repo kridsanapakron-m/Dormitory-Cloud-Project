@@ -13,7 +13,8 @@ import {
   HelpCircle,
   Menu,
   Bell,
-  Package
+  Package,
+  Settings2
 } from "lucide-react";
 import {
   Sheet,
@@ -77,6 +78,11 @@ const Sidebar = ({ className }: SidebarProps) => {
       title: "จัดการพัสดุ",
       icon: Package,
       href: "/admin/parcel"
+    },
+    {
+      title:"ตั้งค่าระบบ",
+      icon: Settings2,
+      href: "/admin/setting"
     }
   ];
 
