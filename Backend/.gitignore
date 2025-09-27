@@ -1,5 +1,5 @@
 # Backend .gitignore
-./node_modules
+node_modules
 .env
 dormitory.db
 config.js

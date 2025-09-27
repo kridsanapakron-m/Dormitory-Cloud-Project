@@ -26,7 +26,7 @@ const createUser = (username, password) => {
       return reject(new Error("กรุณากรอก username และ password"));
     }
 
-    db.all(
+    db.query(
       "SELECT * FROM users WHERE username = ?",
       [username],
       (error, existingUsers) => {
@@ -44,13 +44,13 @@ const createUser = (username, password) => {
           }
 
           const sql = `INSERT INTO users (username, password, email, firstname, lastname, dob, address, telephone, createat, RoomID, role, userImg)
-                VALUES (?, ?, NULL, NULL, NULL, NULL, NULL, NULL, datetime('now'), NULL, 'user', NULL)`;
+                VALUES (?, ?, NULL, NULL, NULL, NULL, NULL, NULL, NOW(), NULL, 'user', NULL)`;
 
-          db.run(sql, [username, hashedPassword], function (error) {
+          db.query(sql, [username, hashedPassword], function (error, result) {
             if (error) {
               return reject(error);
             }
-            resolve({ message: "สมัครสำเร็จ", userId: this.lastID });
+            resolve({ message: "สมัครสำเร็จ", userId: result.insertId });
           });
         });
       }
@@ -58,13 +58,13 @@ const createUser = (username, password) => {
   });
 };
 
-router.post("/register", verifyToken, async (req, res, next) => {
+router.post("/register", async (req, res, next) => {
   const { username, password } = req.body;
-  if (req.user.role !== "admin") {
-    return res
-      .status(403)
-      .json({ message: "เฉพาะผู้ดูแลระบบที่สามารถใช้คำสั่งนี้ได้" });
-  }
+  // if (req.user.role !== "admin") {
+  //   return res
+  //     .status(403)
+  //     .json({ message: "เฉพาะผู้ดูแลระบบที่สามารถใช้คำสั่งนี้ได้" });
+  // }
 
   try {
     const result = await createUser(username, password);
@@ -85,10 +85,11 @@ router.post("/login", (req, res, next) => {
     return res.status(400).json({ message: "กรอกข้อมูลไม่ครบ" });
   }
 
-  db.get(
+  db.query(
     "SELECT * FROM users WHERE username = ? OR email = ?",
     [userIdentifier, userIdentifier],
-    (error, user) => {
+    (error, results) => {
+      const user = results && results.length > 0 ? results[0] : null;
       if (error) {
         return next(error);
       }
@@ -131,7 +132,7 @@ router.get("/users", verifyToken, (req, res, next) => {
       .json({ message: "เฉพาะผู้ดูแลระบบที่สามารถใช้คำสั่งนี้ได้" });
   }
 
-  db.all("SELECT id, firstname, lastname FROM users", (error, users) => {
+  db.query("SELECT id, firstname, lastname FROM users", (error, users) => {
     if (error) {
       return next(error);
     }
@@ -149,7 +150,8 @@ router.get("/profile", verifyToken, (req, res, next) => {
   const sql = `SELECT users.firstname, users.lastname, users.address, users.telephone, users.email, users.userimg, users.RoomID, room.roomname,
     room.roomTypeId FROM users LEFT JOIN room ON users.RoomID = room.id WHERE users.id = ?`;
 
-  db.get(sql, [userId], (error, user) => {
+  db.query(sql, [userId], (error, results) => {
+    const user = results && results.length > 0 ? results[0] : null;
     if (error) {
       return next(error);
     }
@@ -166,10 +168,11 @@ router.get("/id/:uid", verifyToken, (req, res, next) => {
   if (!req.user) {
     return res.status(403).json({ message: "โปรดเข้าสู่ระบบ" });
   }
-  db.get(
+  db.query(
     `SELECT firstname, lastname, address, telephone, email, userimg FROM users WHERE id = ?`,
     [userId],
-    (error, user) => {
+    (error, results) => {
+      const user = results && results.length > 0 ? results[0] : null;
       if (error) {
         return next(error);
       }
@@ -197,7 +200,7 @@ router.put("/edit", verifyToken, (req, res, next) => {
   sql += " WHERE id = ?";
   params.push(userId);
 
-  db.run(sql, params, function (error) {
+  db.query(sql, params, function (error, result) {
     if (error) {
       return next(error);
     }
@@ -213,7 +216,8 @@ router.put("/change-password", verifyToken, (req, res, next) => {
     return res.status(400).json({ message: "กรุณากรอกข้อมูลให้ครบถ้วน" });
   }
 
-  db.get("SELECT password FROM users WHERE id = ?", [userId], (error, user) => {
+  db.query("SELECT password FROM users WHERE id = ?", [userId], (error, results) => {
+    const user = results && results.length > 0 ? results[0] : null;
     if (error) {
       return next(error);
     }
@@ -236,10 +240,10 @@ router.put("/change-password", verifyToken, (req, res, next) => {
           return next(err);
         }
 
-        db.run(
+        db.query(
           "UPDATE users SET password = ? WHERE id = ?",
           [hashedPassword, userId],
-          function (error) {
+          function (error, result) {
             if (error) {
               return next(error);
             }
@@ -265,15 +269,15 @@ router.put("/reset-password/:userId", verifyToken, (req, res, next) => {
       return next(err);
     }
 
-    db.run(
+    db.query(
       "UPDATE users SET password = ? WHERE id = ?",
       [hashedPassword, userId],
-      function (error) {
+      function (error, result) {
         if (error) {
           return next(error);
         }
 
-        if (this.changes === 0) {
+        if (result.affectedRows === 0) {
           return res.status(404).json({ message: "ไม่พบผู้ใช้" });
         }
 

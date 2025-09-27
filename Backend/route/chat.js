@@ -8,14 +8,13 @@ router.get("/", verifyToken, (req, res, next) => {
     return res.status(401).json({ message: "กรุณา login" });
   }
 
-  db.all(
+  db.query(
     "SELECT id, message, timestamp FROM chatDataBase ORDER BY timestamp DESC",
-    [],
-    (error, chats) => {
+    (error, results) => {
       if (error) {
         return next(error);
       }
-      res.status(200).json(chats);
+      res.status(200).json(results);
     }
   );
 });
@@ -30,22 +29,23 @@ router.post("/", verifyToken, (req, res, next) => {
     return res.status(400).json({ message: "กรุณากรอกข้อความ" });
   }
 
-  db.run(
-    "INSERT INTO chatDataBase (message, timestamp) VALUES (?, datetime('now', '+7 hours'))",
+  db.query(
+    "INSERT INTO chatDataBase (message, timestamp) VALUES (?, NOW())",
     [message],
-    function (error) {
+    function (error, result) {
       if (error) {
         return next(error);
       }
 
-      db.get(
+      db.query(
         "SELECT * FROM chatDataBase WHERE id = ?",
-        [this.lastID],
-        (error, insertedChat) => {
+        [result.insertId],
+        (error, results) => {
           if (error) {
             return next(error);
           }
 
+          const insertedChat = results && results.length > 0 ? results[0] : null;
           if (!insertedChat) {
             return res.status(500).json({ message: "เกิดข้อผิดพลาด" });
           }

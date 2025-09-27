@@ -3,91 +3,104 @@ const router = express.Router();
 const db = require('../db');
 const { verifyToken } = require('../middleware/auth.middleware');
 
-router.post('/add', verifyToken, async (req, res) => {
+router.post('/add', verifyToken, (req, res) => {
     if (req.user.role !== 'admin') {
         return res.status(403).json({ message: 'เฉพาะผู้ดูแลระบบเท่านั้น' });
     }
     const { roomName, IncomingDate, parcel_img } = req.body;
-    try {
-        const result = await db.run(
-            `INSERT INTO parcel (roomName, IncomingDate, parcel_img) VALUES (?, ?, ?)`,
-            [roomName, IncomingDate, parcel_img]
-        );
-        res.status(201).json({ message: 'เพิ่มพัสดุสำเร็จ', id: result.lastID });
-    } catch (error) {
-        res.status(500).json({ error: 'ไม่สามารถเพิ่มพัสดุได้'});
-    }
+    
+    db.db.query(
+        `INSERT INTO parcel (roomName, IncomingDate, parcel_img) VALUES (?, ?, ?)`,
+        [roomName, IncomingDate, parcel_img],
+        function (error, result) {
+            if (error) {
+                return res.status(500).json({ error: 'ไม่สามารถเพิ่มพัสดุได้'});
+            }
+            res.status(201).json({ message: 'เพิ่มพัสดุสำเร็จ', id: result.insertId });
+        }
+    );
 });
 
-router.get('/all', verifyToken, async (req, res) => {
+router.get('/all', verifyToken, (req, res) => {
     if (req.user.role !== 'admin') {
         return res.status(403).json({ message: 'เฉพาะผู้ดูแลระบบเท่านั้น' });
     }
-    try {
-        const parcels = await db.all(`SELECT * FROM parcel`);
-        res.status(200).json(parcels);
-    } catch (error) {
-        res.status(500).json({ error: 'ไม่สามารถดึงพัสดุได้'});
-    }
+    
+    db.db.query(`SELECT * FROM parcel`, (error, results) => {
+        if (error) {
+            return res.status(500).json({ error: 'ไม่สามารถดึงพัสดุได้'});
+        }
+        res.status(200).json(results);
+    });
 });
 
-router.delete('/delete/:id', verifyToken, async (req, res) => {
+router.delete('/delete/:id', verifyToken, (req, res) => {
     if (req.user.role !== 'admin') {
         return res.status(403).json({ message: 'เฉพาะผู้ดูแลระบบเท่านั้น' });
     }
     const { id } = req.params;
-    try {
-        await db.run(`DELETE FROM parcel WHERE id = ?`, [id]);
+    
+    db.db.query(`DELETE FROM parcel WHERE id = ?`, [id], function (error, result) {
+        if (error) {
+            return res.status(500).json({ error: 'ไม่สามารถลบพัสดุได้'});
+        }
         res.status(200).json({ message: 'ลบพัสดุสำเร็จ' });
-    } catch (error) {
-        res.status(500).json({ error: 'ไม่สามารถลบพัสดุได้'});
-    }
+    });
 });
 
-router.put('/edit/:id', verifyToken, async (req, res) => {
+router.put('/edit/:id', verifyToken, (req, res) => {
     if (req.user.role !== 'admin') {
         return res.status(403).json({ message: 'เฉพาะผู้ดูแลระบบเท่านั้น' });
     }
     const { id } = req.params;
     const { roomName, IncomingDate, parcel_img } = req.body;
-    try {
-        await db.run(
-            `UPDATE parcel SET roomName = ?, IncomingDate = ?, parcel_img = ? WHERE id = ?`,
-            [roomName, IncomingDate, parcel_img, id]
-        );
-        res.status(200).json({ message: 'อัปเดตพัสดุสำเร็จ' });
-    } catch (error) {
-        res.status(500).json({ error: 'ไม่สามารถอัปเดตพัสดุได้'});
-    }
+    
+    db.db.query(
+        `UPDATE parcel SET roomName = ?, IncomingDate = ?, parcel_img = ? WHERE id = ?`,
+        [roomName, IncomingDate, parcel_img, id],
+        function (error, result) {
+            if (error) {
+                return res.status(500).json({ error: 'ไม่สามารถอัปเดตพัสดุได้'});
+            }
+            res.status(200).json({ message: 'อัปเดตพัสดุสำเร็จ' });
+        }
+    );
 });
 
-router.get('/room/:userId', verifyToken, async (req, res) => {
+router.get('/room/:userId', verifyToken, (req, res) => {
     const { userId } = req.params;
-    try {
-
-        const user = await db.get(`SELECT RoomID FROM users WHERE id = ?`, [userId]);
+    
+    db.db.query(`SELECT RoomID FROM users WHERE id = ?`, [userId], (error, results) => {
+        if (error) {
+            return res.status(500).json({ error: 'ไม่สามารถดึงพัสดุโดย userId ได้', details: error.message });
+        }
+        
+        const user = results.length > 0 ? results[0] : null;
         if (!user || !user.RoomID) {
             return res.status(404).json({ message: 'ห้องไม่พบสำหรับ userId ที่กำหนด' });
         }
 
-        const parcels = await db.all(`SELECT * FROM parcel WHERE roomName = ?`, [user.RoomID]);
-        res.status(200).json(parcels);
-    } catch (error) {
-        res.status(500).json({ error: 'ไม่สามารถดึงพัสดุโดย userId ได้', details: error.message });
-    }
+        db.db.query(`SELECT * FROM parcel WHERE roomName = ?`, [user.RoomID], (error, results) => {
+            if (error) {
+                return res.status(500).json({ error: 'ไม่สามารถดึงพัสดุโดย userId ได้', details: error.message });
+            }
+            res.status(200).json(results);
+        });
+    });
 });
 
 //ดึงข้อมูลชื่อผู้ใช้งานที่มีห้อง เพื่อแสดงในหน้าพัสดุ
-router.get('/users', verifyToken, async (req, res) => {
+router.get('/users', verifyToken, (req, res) => {
     if (req.user.role !== 'admin') {
         return res.status(403).json({ message: 'เฉพาะผู้ดูแลระบบเท่านั้น' });
     }
-    try {
-        const users = await db.all(`SELECT firstname, roomName FROM users`);
-        res.status(200).json(users);
-    } catch (error) {
-        res.status(500).json({ error: 'ไม่สามารถดึงข้อมูลผู้ใช้งานได้'});
-    }
+    
+    db.db.query(`SELECT firstname, roomName FROM users`, (error, results) => {
+        if (error) {
+            return res.status(500).json({ error: 'ไม่สามารถดึงข้อมูลผู้ใช้งานได้'});
+        }
+        res.status(200).json(results);
+    });
 });
 
 module.exports = router;

@@ -11,14 +11,14 @@ router.get("/room", verifyToken, (req, res, next) => {
 
   const selectQuery = `SELECT COUNT(id) AS totalRooms FROM room;`;
 
-  db.get(selectQuery, (error, row) => { 
+  db.query(selectQuery, (error, results) => { 
     if (error) {
       return next(error); 
     }
-    if (!row) { 
+    if (!results || results.length === 0) { 
         return res.status(200).json({ totalRooms: 0 });
     }
-    return res.status(200).json({ totalRooms: row.totalRooms });
+    return res.status(200).json({ totalRooms: results[0].totalRooms });
   });
 });
 
@@ -29,14 +29,14 @@ router.get("/queue", verifyToken, (req, res, next) => {
 
   const selectQuery = `SELECT COUNT(id) AS totalQueues FROM Queue;`;
 
-  db.get(selectQuery, (error, row) => {
+  db.query(selectQuery, (error, results) => {
     if (error) {
       return next(error);
     }
-    if (!row) {
+    if (!results || results.length === 0) {
         return res.status(200).json({ totalQueues: 0 });
     }
-    return res.status(200).json({ totalQueues: row.totalQueues });
+    return res.status(200).json({ totalQueues: results[0].totalQueues });
   });
 });
 
@@ -47,14 +47,14 @@ router.get("/vacant", verifyToken, (req, res, next) => {
 
   const selectQuery = `SELECT count(id) AS totalTenants from room where renterID is not NULL;`;
 
-  db.get(selectQuery, (error, row) => {
+  db.query(selectQuery, (error, results) => {
     if (error) {
       return next(error);
     }
-     if (!row) {
+     if (!results || results.length === 0) {
         return res.status(200).json({ totalTenants: 0 });
     }
-    return res.status(200).json({ totalTenants: row.totalTenants });
+    return res.status(200).json({ totalTenants: results[0].totalTenants });
   });
 });
 
@@ -65,14 +65,14 @@ router.get("/bill", verifyToken, (req, res, next) => {
 
   const selectQuery = `SELECT count(BillID) AS unpaidBills from bill where billStatus!=2;`;
 
-  db.get(selectQuery, (error, row) => {
+  db.query(selectQuery, (error, results) => {
     if (error) {
       return next(error);
     }
-     if (!row) {
+     if (!results || results.length === 0) {
         return res.status(200).json({ unpaidBills: 0 });
     }
-    return res.status(200).json({ unpaidBills: row.unpaidBills });
+    return res.status(200).json({ unpaidBills: results[0].unpaidBills });
   });
 });
 

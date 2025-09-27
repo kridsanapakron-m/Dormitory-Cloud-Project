@@ -1,10 +1,10 @@
-require("dotenv").config();
+//require("dotenv").config();
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const config = require("./config");
-const { db } = require("./db");
+//const config = require("./config");
+const { db } = require("./db.js");
 const { verifyToken } = require("./middleware/auth.middleware");
 const multer = require("multer");
 const storage = multer.memoryStorage();
@@ -17,7 +17,7 @@ const { format } = require("date-fns");
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
 
-const authRouter = require('./route/auth');
+const { router: authRouter } = require('./route/auth');
 const roomsRouter = require('./route/rooms');
 const queueRouter = require('./route/queue');
 const tasksRouter = require('./route/tasks');
@@ -30,7 +30,7 @@ const port = 3000;
 
 const cors = require("cors");
 
-const allowedOrigins = ["http://localhost:8000"];
+const allowedOrigins = ["*"];
 
 const corsOptions = {
   origin: function (origin, callback) {

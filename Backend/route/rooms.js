@@ -10,7 +10,7 @@ router.get("/", verifyToken, (req, res, next) => {
       .status(403)
       .json({ message: "เฉพาะผู้ดูแลระบบที่ใช้คำสั่งนี้ได้" });
   }
-  db.all(
+  db.query(
     `SELECT id, roomName, description, roomTypeId, floor, renterID, roomImg FROM room`,
     (error, rooms) => {
       if (error) {
@@ -33,19 +33,19 @@ router.get("/:roomId", verifyToken, (req, res, next) => {
       .json({ message: "เฉพาะผู้ดูแลระบบที่ใช้คำสั่งนี้ได้" });
   }
 
-  db.get(
+  db.query(
     `SELECT id, roomName, description, roomTypeId, floor, renterID FROM room WHERE id = ?`,
     [roomId],
-    (error, room) => {
+    (error, results) => {
       if (error) {
         return next(error);
       }
 
-      if (!room) {
+      if (!results || results.length === 0) {
         return res.status(404).json({ message: "ไม่พบเลขห้องในระบบ" });
       }
 
-      res.status(200).json({ room: room });
+      res.status(200).json({ room: results[0] });
     }
   );
 });
@@ -76,7 +76,7 @@ router.post("/", verifyToken, async (req, res, next) => {
 
   try {
     const existingRoom = await new Promise((resolve, reject) => {
-      db.all(
+      db.query(
         `SELECT id FROM room WHERE roomName = ?`,
         [roomName],
         (error, result) => {
@@ -92,12 +92,12 @@ router.post("/", verifyToken, async (req, res, next) => {
 
     const newRoomId = await new Promise((resolve, reject) => {
       const sql = `INSERT INTO room (roomName, description, roomTypeId, floor, renterID, roomImg) VALUES (?, ?, ?, ?, ?, ?)`;
-      db.run(
+      db.query(
         sql,
         [roomName, description, roomTypeId, floor, null, roomImg],
-        function (error) {
+        function (error, result) {
           if (error) return reject(error);
-          resolve(this.lastID);
+          resolve(result.insertId);
         }
       );
     });
@@ -105,10 +105,10 @@ router.post("/", verifyToken, async (req, res, next) => {
     const registerResponse = await createUser(`room_${newRoomId}`, "Cisco123!");
 
     await new Promise((resolve, reject) => {
-      db.run(
+      db.query(
         `UPDATE room SET renterID = ? WHERE id = ?`,
         [registerResponse.userId, newRoomId],
-        function (error) {
+        function (error, result) {
           if (error) return reject(error);
           resolve();
         }
@@ -134,25 +134,25 @@ router.delete("/:roomId", verifyToken, (req, res, next) => {
     return res.status(400).json({ message: "โปรดกรอก รหัสห้อง" });
   }
 
-  db.get(`SELECT renterID FROM room WHERE id = ?`, [roomId], (error, row) => {
+  db.query(`SELECT renterID FROM room WHERE id = ?`, [roomId], (error, results) => {
     if (error) {
       return next(error);
     }
 
-    if (!row) {
+    if (!results || results.length === 0) {
       return res.status(404).json({ message: "ไม่พบห้องในระบบ" });
     }
 
-    if (row.renterID !== null) {
+    if (results[0].renterID !== null) {
       return res.status(400).json({ message: "ไม่สามารถลบห้องได้ เนื่องจากมีผู้เช่าอยู่" });
     }
 
-    db.run(`DELETE FROM room WHERE id = ?`, [roomId], function (error) {
+    db.query(`DELETE FROM room WHERE id = ?`, [roomId], function (error, result) {
       if (error) {
         return next(error);
       }
 
-      if (this.changes === 0) {
+      if (result.affectedRows === 0) {
         return res.status(404).json({ message: "ไม่พบห้องในระบบ" });
       }
       res.status(200).json({ message: "ลบห้อง สำเร็จ" });
@@ -205,10 +205,10 @@ router.put("/:roomId", verifyToken, (req, res, next) => {
 
   const sql =
     "UPDATE room SET roomName = ?, description = ?, roomTypeId = ?, floor = ?, roomImg = ? WHERE id = ?";
-  db.run(
+  db.query(
     sql,
     [roomName, description, roomTypeId, floor, roomImg, roomId],
-    function (error) {
+    function (error, result) {
       if (error) {
         return next(error);
       }
@@ -266,36 +266,36 @@ router.put("/:roomId/assign", verifyToken, (req, res, next) => {
   if (req.user.role !== "admin") {
     return res.status(403).json({ message: "เฉพาะผู้ดูแลระบบ" });
   }
-  db.get(
+  db.query(
     `SELECT renterID FROM room WHERE id = ?`,
     [roomId],
-    (error, roomRow) => {
+    (error, roomResults) => {
       if (error) {
         return next(error);
       }
-      if (!roomRow || !roomRow.renterID) {
+      if (!roomResults || roomResults.length === 0 || !roomResults[0].renterID) {
         return res.status(404).json({ message: "ไม่พบ renterID ของห้องนี้" });
       }
-      db.get(
+      db.query(
         `SELECT username, password FROM users WHERE id = ?`,
-        [roomRow.renterID],
-        (error, userRow) => {
+        [roomResults[0].renterID],
+        (error, userResults) => {
           if (error) {
             return next(error);
           }
-          if (!userRow) {
+          if (!userResults || userResults.length === 0) {
             return res.status(404).json({ message: "ไม่พบผู้ใช้ที่ตรงกับ renterID" });
           }
-          db.run(
+          db.query(
             `UPDATE room SET available = 1 WHERE id = ?`,
             [roomId],
-            function (error) {
+            function (error, result) {
               if (error) {
                 return next(error);
               }
               res.status(200).json({ 
                 message: "แก้ไขห้องว่ามีผู้เช่าแล้ว",
-                username: userRow.username,
+                username: userResults[0].username,
               });
             }
           );
@@ -323,38 +323,38 @@ router.put("/:roomId/removetenant", verifyToken, (req, res, next) => {
   if (req.user.role !== "admin") {
     return res.status(403).json({ message: "เฉพาะผู้ดูแลระบบ" });
   }
-db.get(
+db.query(
     `SELECT roomName FROM room WHERE id = ?`,
     [roomId],
-    (error, roomRow) => {
+    (error, roomResults) => {
       if (error) {
         return next(error);
       }
 
-      if (!roomRow) {
+      if (!roomResults || roomResults.length === 0) {
         return res.status(404).json({ message: "ไม่พบห้องในระบบ" });
       }
 
-      const roomName = roomRow.roomName;
-      db.run(
+      const roomName = roomResults[0].roomName;
+      db.query(
         `DELETE FROM bill WHERE RoomID = ?`,
         [roomId],
-        function (error) {
+        function (error, result) {
           if (error) {
             return next(error);
           }
-          db.run(
+          db.query(
             `DELETE FROM task WHERE roomid = ?`,
             [roomId],
-            function (error) {
+            function (error, result) {
               if (error) {
                 return next(error);
               }
 
-              db.run(
+              db.query(
                 `DELETE FROM percel WHERE roomName = ?`,
                 [roomName],
-                function (error) {
+                function (error, result) {
                   if (error) {
                     return next(error);
                   }

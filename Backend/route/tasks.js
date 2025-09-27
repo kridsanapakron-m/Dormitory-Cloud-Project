@@ -8,7 +8,7 @@ router.post("/", verifyToken, (req, res) => {
   const data = req.body;
   try {
     let roomid = req.user.room;
-    db.all("SELECT roomName FROM room WHERE id=?", [roomid], (err, row) => {
+    db.query("SELECT roomName FROM room WHERE id=?", [roomid], (err, results) => {
       if (err) {
         console.error("Query error:", err);
         return res
@@ -16,14 +16,14 @@ router.post("/", verifyToken, (req, res) => {
           .json({ message: "Error while querying room: " + err });
       }
 
-      if (!row[0] || !row[0].roomName) {
+      if (!results || results.length === 0 || !results[0].roomName) {
         return res.status(404).json({ message: "Room not found" });
       }
 
-      let roomname = row[0].roomName;
+      let roomname = results[0].roomName;
       console.log("Room Name:", roomname);
 
-      db.run(
+      db.query(
         `INSERT INTO task (roomid, taskname, tasktype, taskdate, description, taskprice, priceset, taskstatus) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           roomid,
@@ -35,7 +35,7 @@ router.post("/", verifyToken, (req, res) => {
           data.priceset ? 1 : 0,
           0,
         ],
-        function (err) {
+        function (err, result) {
           if (err) {
             console.error("Query error:", err);
             return res
@@ -43,10 +43,10 @@ router.post("/", verifyToken, (req, res) => {
               .json({ message: "Cannot INSERT task: " + err });
           }
 
-          console.log("Inserted task with ID:", this.lastID);
+          console.log("Inserted task with ID:", result.insertId);
           res
             .status(200)
-            .json({ message: "Task created!", taskID: this.lastID });
+            .json({ message: "Task created!", taskID: result.insertId });
         }
       );
     });
@@ -62,7 +62,7 @@ router.get("/", verifyToken, (req, res) => {
     roomidQuery = req.query.roomid ? `WHERE roomid = ?` : "";
   } else if (req.query.roomid && req.query.month) {
     console.log(req.query.roomid, req.query.month);
-    roomidQuery = "WHERE roomid = ? AND strftime('%Y-%m', doneDate) = ?";
+    roomidQuery = "WHERE roomid = ? AND DATE_FORMAT(doneDate, '%Y-%m') = ?";
   }
 
   // Combine query string
@@ -77,7 +77,7 @@ router.get("/", verifyToken, (req, res) => {
   if (req.query.roomid && req.query.month)
     params.push(format(new Date(req.query.month), "yyyy-MM"));
 
-  db.all(query, params, (err, result) => {
+  db.query(query, params, (err, result) => {
     if (err) {
       console.error("Got Error:", err);
       return res.status(500).json({ message: "Internal Server Error" });
@@ -96,8 +96,9 @@ router.get("/", verifyToken, (req, res) => {
 });
 
 router.get("/:taskid", verifyToken, (req, res) => {
-  db.all(
-    `SELECT * FROM task WHERE taskid=${req.params["taskid"]}`,
+  db.query(
+    `SELECT * FROM task WHERE taskid=?`,
+    [req.params["taskid"]],
     (ex, result) => {
       if (ex) {
         console.error("Got Error:", ex);
@@ -116,18 +117,18 @@ router.get("/:taskid", verifyToken, (req, res) => {
 });
 
 router.put("/:taskid/setDone", verifyToken, (req, res) => {
-  db.run(
-    `UPDATE task SET taskstatus=1,doneDate=current_timestamp,taskprice=?,priceset=1 WHERE taskid=?`,
+  db.query(
+    `UPDATE task SET taskstatus=1,doneDate=CURRENT_TIMESTAMP,taskprice=?,priceset=1 WHERE taskid=?`,
     [req.body.price, req.params["taskid"]],
-    function(ex) {
+    function(ex, result) {
       if (ex) {
         console.error(
           `Got Error while setting Task ${req.params["taskid"]} status: ${ex} `
         );
         return res.status(500).json({ message: "Internet Server Error" });
       }
-      console.log(this.changes);
-      if (this.changes == 0) {
+      console.log(result.affectedRows);
+      if (result.affectedRows == 0) {
         return res.status(404).json({
           message: `Task ${req.params["taskid"]} not found or it's already has been set.`,
         });
@@ -141,8 +142,9 @@ router.put("/:taskid/setDone", verifyToken, (req, res) => {
 });
 
 router.put("/:taskid/setTaskPrice", verifyToken, (req, res) => {
-  db.all(
-    `SELECT taskprice,priceset FROM task WHERE taskid=${req.params["taskid"]}`,
+  db.query(
+    `SELECT taskprice,priceset FROM task WHERE taskid=?`,
+    [req.params["taskid"]],
     (ex, val) => {
       if (ex) {
         console.error(
@@ -153,8 +155,9 @@ router.put("/:taskid/setTaskPrice", verifyToken, (req, res) => {
       console.log(val.length);
       if (!!val.length) {
         if (!Number.isNaN(req.body.taskprice)) {
-          conn.query(
-            `UPDATE task SET taskprice=${req.body.taskprice}, priceset=TRUE WHERE taskid=${req.params["taskid"]};`,
+          db.query(
+            `UPDATE task SET taskprice=?, priceset=1 WHERE taskid=?`,
+            [req.body.taskprice, req.params["taskid"]],
             (ex1, val1) => {
               if (ex1) {
                 console.error(

@@ -18,7 +18,7 @@ router.post("/", verifyToken, (req, res) => {
   const data = req.body;
 
   console.log(data.additionalFees);
-  db.run(
+  db.query(
     "INSERT INTO bill (RoomID, billMonth, DueDate, waterprice, electricprice, taskprice, roomprice, missDateCount, missfee, totalPrice, billStatus,additionalFees) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     [
       data.RoomID,
@@ -34,12 +34,12 @@ router.post("/", verifyToken, (req, res) => {
       0, // billStatus
       JSON.stringify(data.additionalFees || []),
     ],
-    (ex) => {
+    (ex, result) => {
       if (ex) {
         console.error(ex);
         res.status(500).json({ message: "Internet Server Error" });
       }
-      res.status(200).json({ message: "Bill created!", billid: this.lastID });
+      res.status(200).json({ message: "Bill created!", billid: result.insertId });
     }
   );
 });
@@ -57,7 +57,7 @@ router.get("/", verifyToken, (req, res) => {
     params.push(req.user.room);
   }
   console.log(query);
-  db.all(query, params, (ex, result) => {
+  db.query(query, params, (ex, result) => {
     if (ex) {
       console.error("Got Error:", ex);
       return res.status(500).json({ message: "Internal Server Error" });
@@ -75,7 +75,7 @@ router.get("/", verifyToken, (req, res) => {
 });
 
 router.get("/paid", verifyToken, (req, res) => {
-  db.all(
+  db.query(
     "SELECT u.id,b.* FROM bill b JOIN users u ON (u.roomid = b.roomid) WHERE billstatus!=0" +
       (req.query.roomid && req.user.role == "admin"
         ? ` AND roomid=${req.query.roomid}`
@@ -102,15 +102,15 @@ router.put(
   upload.single("TransactionImg"),
   (req, res) => {
     const { buffer } = req.file;
-    db.run(
+    db.query(
       `UPDATE bill SET transactionimg=?, billstatus=1 WHERE billid=${req.params["billid"]}`,
       [buffer],
-      (ex) => {
+      (ex, result) => {
         if (ex) {
           console.error("Got Error:", ex);
           res.status(500).json({ message: "Internet Server Error" });
         }
-        if (this.changes == 0)
+        if (result.affectedRows == 0)
           res.status(404).json({
             message: `Bill ${req.params["billid"]} not found or it's already been set.`,
           });
@@ -127,14 +127,14 @@ router.put("/:billid/confirmPayment", verifyToken, (req, res) => {
     return res
       .status(403)
       .json({ message: "You must be admin to access this" });
-  db.run(
+  db.query(
     `UPDATE bill SET billStatus=2,paidDate=CURRENT_TIMESTAMP WHERE billid=${req.params["billid"]}`,
-    (ex) => {
+    (ex, result) => {
       if (ex) {
         console.error(ex);
         res.status(500).json({ message: "Internet Server Error" });
       }
-      if (this.changes == 0) {
+      if (result.affectedRows == 0) {
         res.status(404).json({
           message: `Bill ${req.params["billid"]} not found or it's value has already been set`,
         });
@@ -148,7 +148,7 @@ router.put("/:billid/confirmPayment", verifyToken, (req, res) => {
 });
 
 router.get("/:billid/qr", verifyToken, (req, res) => {
-  db.all(
+  db.query(
     "SELECT totalPrice FROM bill WHERE billid=?",
     [req.params["billid"]],
     (ex, val) => {

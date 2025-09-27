@@ -12,45 +12,45 @@ router.post("/:roomTypeId", (req, res, next) => {
     return res.status(400).json({ message: "กรุณากรอก email, firstname และ lastname" });
   }
 
-  db.get(
+  db.query(
     "SELECT COUNT(id) as checkqueue FROM Queue WHERE email = ?",
     [email],
-    (err, queueCheckResult) => {
+    (err, queueCheckResults) => {
       if (err) {
         return next(err);
       }
 
-      if (queueCheckResult.checkqueue > 0) {
+      if (queueCheckResults[0].checkqueue > 0) {
         return res.status(409).json({ message: "คุณมีคิวอยู่แล้ว" });
       }
 
-      db.get(
+      db.query(
         "SELECT COUNT(id) as vacantCount FROM room WHERE roomTypeId = ?",
         [roomTypeId],
-        (err, vacantResult) => {
+        (err, vacantResults) => {
           if (err) {
             return next(err);
           }
 
-          db.get(
+          db.query(
             "SELECT COUNT(id) as unavailableCount FROM room WHERE roomTypeId = ? AND renterID IS NOT NULL",
             [roomTypeId],
-            (err, unavailableResult) => {
+            (err, unavailableResults) => {
               if (err) {
                 return next(err);
               }
 
-              db.get(
+              db.query(
                 "SELECT COUNT(id) as queueCount FROM Queue WHERE roomTypeId = ?",
                 [roomTypeId],
-                (err, queueResult) => {
+                (err, queueResults) => {
                   if (err) {
                     return next(err);
                   }
 
-                  const vacantCount = vacantResult.vacantCount;
-                  const unavailableCount = unavailableResult.unavailableCount;
-                  const queueCount = queueResult.queueCount;
+                  const vacantCount = vacantResults[0].vacantCount;
+                  const unavailableCount = unavailableResults[0].unavailableCount;
+                  const queueCount = queueResults[0].queueCount;
 
                   console.log(vacantCount, unavailableCount, queueCount);
 
@@ -59,14 +59,14 @@ router.post("/:roomTypeId", (req, res, next) => {
                   }
 
                   const insertQueue = `INSERT INTO Queue (email, firstname, lastname, roomTypeId, queueDate, description, bookingDate, bookingTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`;
-                  db.run(
+                  db.query(
                     insertQueue,
                     [email, firstname, lastname, roomTypeId, queueDate, description, bookingDate, bookingTime],
-                    function (error) {
+                    function (error, result) {
                       if (error) {
                         return next(error);
                       }
-                      res.status(201).json({ roomId: this.lastID });
+                      res.status(201).json({ roomId: result.insertId });
                     }
                   );
                 }
@@ -87,11 +87,11 @@ router.delete("/del/:queueId", verifyToken, (req, res, next) => {
 
   const deleteQuery = "DELETE FROM Queue WHERE id = ?";
   console.log(deleteQuery + queueId);
-  db.run(deleteQuery, [queueId], function (error) {
+  db.query(deleteQuery, [queueId], function (error, result) {
     if (error) {
       return next(error);
     }
-    if (this.changes === 0) {
+    if (result.affectedRows === 0) {
       return res.status(404).json({ message: "ไม่พบคิว" });
     }
     return res.status(200).json({ message: "ลบคิวสำเร็จ" });
@@ -122,7 +122,7 @@ router.get("/", verifyToken, (req, res, next) => {
   JOIN users u ON q.userId = u.id
   ORDER BY q.queueDate
 `;
-  db.all(selectQuery, (error, queueEntries) => {
+  db.query(selectQuery, (error, queueEntries) => {
     if (error) {
       return next(error);
     }
@@ -139,7 +139,7 @@ router.get("/vacant/:type", verifyToken, (req, res, next) => {
   const selectQuery = `
     SELECT id, roomName FROM room WHERE roomTypeId = ? AND renterID IS NULL;
 `;
-  db.all(selectQuery, [type], (error, vacantroom) => {
+  db.query(selectQuery, [type], (error, vacantroom) => {
     if (error) {
       return next(error);
     }
@@ -153,33 +153,33 @@ router.get("/check/:type", verifyToken, (req, res, next) => {
   }
   const { type } = req.params;
 
-  db.get(
+  db.query(
     "SELECT COUNT(id) as vacantCount FROM room WHERE roomTypeId = ? AND available = 0",
     [type],
-    (err, vacantResult) => {
+    (err, vacantResults) => {
       if (err) {
         return next(err);
       }
 
-      db.get(
+      db.query(
         "SELECT COUNT(id) as unavailableCount FROM room WHERE roomTypeId = ? AND available = 1",
         [type],
-        (err, unavailableResult) => {
+        (err, unavailableResults) => {
           if (err) {
             return next(err);
           }
 
-          db.get(
+          db.query(
             "SELECT COUNT(id) as queueCount FROM Queue WHERE roomTypeId = ?",
             [type],
-            (err, queueResult) => {
+            (err, queueResults) => {
               if (err) {
                 return next(err);
               }
 
-              const vacantCount = vacantResult.vacantCount;
-              const unavailableCount = unavailableResult.unavailableCount;
-              const queueCount = queueResult.queueCount;
+              const vacantCount = vacantResults[0].vacantCount;
+              const unavailableCount = unavailableResults[0].unavailableCount;
+              const queueCount = queueResults[0].queueCount;
 
               const result = {
                 vacant: vacantCount,
@@ -205,7 +205,7 @@ router.get("/roomtypes", (req, res, next) => {
     SELECT roomtypeid, name, description, roomtypeimg FROM roomtype;
   `;
 
-  db.all(selectQuery, (error, roomTypes) => {
+  db.query(selectQuery, (error, roomTypes) => {
     if (error) {
       return next(error);
     }
