@@ -8,15 +8,34 @@ router.post('/add', verifyToken, (req, res) => {
         return res.status(403).json({ message: 'เฉพาะผู้ดูแลระบบเท่านั้น' });
     }
     const { roomName, IncomingDate, parcel_img } = req.body;
-    
     db.db.query(
-        `INSERT INTO parcel (roomName, IncomingDate, parcel_img) VALUES (?, ?, ?)`,
-        [roomName, IncomingDate, parcel_img],
-        function (error, result) {
+        `SELECT available FROM room WHERE roomName = ?`,
+        [roomName],
+        function (error, results) {
             if (error) {
-                return res.status(500).json({ error: 'ไม่สามารถเพิ่มพัสดุได้'});
+                return res.status(500).json({ error: 'ไม่สามารถตรวจสอบสถานะห้องได้' });
             }
-            res.status(201).json({ message: 'เพิ่มพัสดุสำเร็จ', id: result.insertId });
+            
+            if (results.length === 0) {
+                return res.status(404).json({ error: 'ไม่พบห้องที่ระบุ' });
+            }
+            
+            const room = results[0];
+            if (room.available === 0) {
+                return res.status(400).json({ error: 'ไม่สามารถเพิ่มพัสดุได้ เนื่องจากห้องนี้ไม่มีผู้เช่า' });
+            }
+            
+            // available = 1 ให้เพิ่มพัสดุได้
+            db.db.query(
+                `INSERT INTO parcel (roomName, IncomingDate, parcel_img) VALUES (?, ?, ?)`,
+                [roomName, IncomingDate, parcel_img],
+                function (error, result) {
+                    if (error) {
+                        return res.status(500).json({ error: 'ไม่สามารถเพิ่มพัสดุได้'});
+                    }
+                    res.status(201).json({ message: 'เพิ่มพัสดุสำเร็จ', id: result.insertId });
+                }
+            );
         }
     );
 });

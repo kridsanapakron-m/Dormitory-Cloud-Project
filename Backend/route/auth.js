@@ -80,14 +80,14 @@ router.post("/register", async (req, res, next) => {
   }
 });
 router.post("/login", (req, res, next) => {
-  const { userIdentifier, password } = req.body;
-  if (!userIdentifier || !password) {
+  const { username, password } = req.body;
+  if (!username || !password) {
     return res.status(400).json({ message: "กรอกข้อมูลไม่ครบ" });
   }
 
   db.query(
     "SELECT * FROM users WHERE username = ? OR email = ?",
-    [userIdentifier, userIdentifier],
+    [username, username],
     (error, results) => {
       const user = results && results.length > 0 ? results[0] : null;
       if (error) {

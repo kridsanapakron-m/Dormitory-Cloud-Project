@@ -266,41 +266,22 @@ router.put("/:roomId/assign", verifyToken, (req, res, next) => {
   if (req.user.role !== "admin") {
     return res.status(403).json({ message: "เฉพาะผู้ดูแลระบบ" });
   }
+  
   db.query(
-    `SELECT renterID FROM room WHERE id = ?`,
+    `UPDATE room SET available = 1 WHERE id = ?`,
     [roomId],
-    (error, roomResults) => {
+    function (error, result) {
       if (error) {
         return next(error);
       }
-      if (!roomResults || roomResults.length === 0 || !roomResults[0].renterID) {
-        return res.status(404).json({ message: "ไม่พบ renterID ของห้องนี้" });
+      
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: "ไม่พบห้องในระบบ" });
       }
-      db.query(
-        `SELECT username, password FROM users WHERE id = ?`,
-        [roomResults[0].renterID],
-        (error, userResults) => {
-          if (error) {
-            return next(error);
-          }
-          if (!userResults || userResults.length === 0) {
-            return res.status(404).json({ message: "ไม่พบผู้ใช้ที่ตรงกับ renterID" });
-          }
-          db.query(
-            `UPDATE room SET available = 1 WHERE id = ?`,
-            [roomId],
-            function (error, result) {
-              if (error) {
-                return next(error);
-              }
-              res.status(200).json({ 
-                message: "แก้ไขห้องว่ามีผู้เช่าแล้ว",
-                username: userResults[0].username,
-              });
-            }
-          );
-        }
-      );
+      
+      res.status(200).json({ 
+        message: "แก้ไขห้องว่ามีผู้เช่าแล้ว"
+      });
     }
   );
 
