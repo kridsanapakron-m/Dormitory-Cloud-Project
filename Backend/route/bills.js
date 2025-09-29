@@ -46,7 +46,7 @@ router.post("/", verifyToken, (req, res) => {
 
 router.get("/", verifyToken, (req, res) => {
   let query =
-    "SELECT b.*,r.roomName as roomNumber from bill b join room r ON (b.RoomID == r.id)";
+    "SELECT b.*,r.roomName as roomNumber from bill b join room r ON (b.RoomID = r.id)";
   let params = [];
 
   if (req.query.roomid && req.user.role === "admin") {
