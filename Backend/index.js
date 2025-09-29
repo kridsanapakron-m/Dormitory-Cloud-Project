@@ -25,6 +25,8 @@ const billsRouter = require('./route/bills');
 const mainRouter = require('./route/main');
 const chatRouter = require('./route/chat');
 const parcelRouter = require('./route/parcel');
+const landingPageRouter = require('./route/landingpage');
+
 
 const app = express();
 const port = 3000;
@@ -63,6 +65,7 @@ app.use('/bills', billsRouter);
 app.use('/main', mainRouter);
 app.use('/chat', chatRouter);
 app.use('/parcel', parcelRouter);
+app.use('/landingpage', landingPageRouter);
 
 // Swagger setup
 const swaggerOptions = {
