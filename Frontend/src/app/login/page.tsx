@@ -23,7 +23,7 @@ const Signin = () => {
         const formData = new FormData(form);
         
         const userData: LoginData = {
-          userIdentifier: formData.get('userIdentifier') as string,
+          username: formData.get('userIdentifier') as string,
           password: formData.get('password') as string,
         };
   

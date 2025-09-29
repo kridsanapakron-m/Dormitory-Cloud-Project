@@ -59,7 +59,7 @@ export interface RegisterFormData {
 }
 
 export interface LoginData {
-  userIdentifier: string;
+  username: string;
   password: string;
 }
 

@@ -485,4 +485,4 @@ export const initialRooms = [
     monthlyRent: 8500
   }
 ];
-export const jwtsecret = 'sec9rity'
+export const jwtsecret = 'your_jwt_secret_key'

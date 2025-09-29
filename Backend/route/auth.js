@@ -110,6 +110,7 @@ router.post("/login", (req, res, next) => {
         const accessToken = generateAccessToken(user);
         res.cookie("token", accessToken, {
           httpOnly: true,
+          sameSite: 'strict',
           maxAge: 3600000,
           secure: process.env.NODE_ENV === "production",
         });
