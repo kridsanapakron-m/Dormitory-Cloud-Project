@@ -118,12 +118,12 @@ export default function HomePage() {
           </motion.button>
           <motion.button
             className="border border-purple-500 text-purple-500 px-6 py-2 rounded-md hover:bg-purple-50"
-            onClick={() => router.push('/register')}
+            onClick={() => router.push('/queue')}
             variants={buttonVariants}
             whileHover="hover"
             whileTap="tap"
           >
-            สมัครสมาชิก
+            นัดชมห้อง
           </motion.button>
         </motion.div>
       </motion.div>
@@ -369,7 +369,7 @@ export default function HomePage() {
             <h1 data-aos="fade-up" className="text-3xl md:text-4xl font-semibold">ขั้นตอนการเช่าห้องพัก</h1>
             <p data-aos="fade-up" className="text-lg md:text-xl text-primary">ง่ายๆ แค่ไม่กี่ขั้นตอน</p>
           </div>
-          <div data-aos="zoom-in-up" className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div data-aos="zoom-in-up" className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {HowTo.map((step, index) => (
               <div key={index} className="text-center">
                 <div className="mx-auto w-20 h-20 mb-4 bg-primary/10 rounded-full flex items-center justify-center">

@@ -119,30 +119,8 @@ const QueueAppointment = () => {
       room.roomType.toLowerCase().includes(searchTerm.toLowerCase()) ||
       room.details.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  const handleLogout = async () => {
-    try {
-      const response = await apiFetch("/auth/logout", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-      });
+ 
 
-      if (response.ok) {
-        toast.success("ออกจากระบบสำเร็จ");
-        router.push("/"); // Redirect to home or login page
-      } else {
-        // Handle errors, e.g., show a notification
-        const errorData = await response.json();
-        console.error("Logout failed:", errorData);
-        toast.error(`ออกจากระบบไม่สำเร็จเนื่องจาก: ${errorData.message || "ไม่ทราบสาเหตุ"}`);
-      }
-    } catch (error) {
-      console.error("Logout failed:", error);
-      toast.error("ออกจากระบบไม่สำเร็จเนื่องจาก:  ข้อผิดพลาดทางเครือข่าย");
-    }
-  };
   const checkQueueStatus = async (roomType: string, id: number) => {
     try {
       const response = await apiFetch(
@@ -198,6 +176,7 @@ const QueueAppointment = () => {
     }
   };
 
+  //มาเเก้ตรงนี้
   const handleConfirmAppointment = async () => {
     if (!selectedRoomType) return;
     try {
@@ -365,15 +344,6 @@ const QueueAppointment = () => {
                 </div>
               )}
 
-              <div className="flex justify-end mt-12">
-                <Button
-                  variant="destructive"
-                  className="hover:scale-105 transition-all duration-300"
-                  onClick={handleLogout}
-                >
-                  ออกจากระบบ
-                </Button>
-              </div>
             </div>
           </div>
 

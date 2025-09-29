@@ -54,9 +54,9 @@ export default function Navbar() {
           </button>
           <button
             className="border border-purple-500 text-purple-500 px-6 py-2 rounded-md hover:bg-purple-50 hover:scale-105 transition-all duration-300" 
-            onClick={() => router.push('/register')}
+            onClick={() => router.push('/queue')}
           >
-            สมัครสมาชิก
+            นัดชมห้อง
           </button>
           </div>
 
