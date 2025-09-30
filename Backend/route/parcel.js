@@ -8,6 +8,11 @@ router.post('/add', verifyToken, (req, res) => {
         return res.status(403).json({ message: 'เฉพาะผู้ดูแลระบบเท่านั้น' });
     }
     const { roomName, IncomingDate, parcel_img } = req.body;
+
+    if (IncomingDate) {
+        CleanIncomingDate = IncomingDate.replace('Z', '').split('.')[0].replace('T', ' ');
+    }
+
     db.db.query(
         `SELECT available FROM room WHERE roomName = ?`,
         [roomName],
@@ -28,7 +33,7 @@ router.post('/add', verifyToken, (req, res) => {
             // available = 1 ให้เพิ่มพัสดุได้
             db.db.query(
                 `INSERT INTO parcel (roomName, IncomingDate, parcel_img) VALUES (?, ?, ?)`,
-                [roomName, IncomingDate, parcel_img],
+                [roomName, CleanIncomingDate, parcel_img],
                 function (error, result) {
                     if (error) {
                         return res.status(500).json({ error: 'ไม่สามารถเพิ่มพัสดุได้'});
@@ -86,8 +91,8 @@ router.put('/edit/:id', verifyToken, (req, res) => {
     );
 });
 
-router.get('/room/:userId', verifyToken, (req, res) => {
-    const { userId } = req.params;
+router.get('/room', verifyToken, (req, res) => {
+    const { userId } = req.user.id;
     
     db.db.query(`SELECT RoomID FROM users WHERE id = ?`, [userId], (error, results) => {
         if (error) {

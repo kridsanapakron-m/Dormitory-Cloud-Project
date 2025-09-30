@@ -12,7 +12,12 @@ export async function apiFetch(path: string, options?: RequestInit): Promise<Res
   });
 
   if (!res.ok) {
-    throw new Error(`API error: ${res.status}`);
+    let errorMessage = '';
+    try {
+      const errorData = await res.json();
+      errorMessage = errorData.error || errorData.message || '';
+    } catch (_) {}
+    throw new Error(`API error ${res.status} at ${path} → ${errorMessage}`);
   }
 
   return res;

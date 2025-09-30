@@ -11,38 +11,60 @@ const generatePayload = require("promptpay-qr");
 const router = express.Router();
 
 router.post("/", verifyToken, (req, res) => {
-  if (req.user.role != "admin")
+  if (req.user.role !== "admin") {
     return res
       .status(403)
       .json({ message: "You must be admin to access this" });
+  }
+
   const data = req.body;
 
-  console.log(data.additionalFees);
+  // ✅ แปลง billMonth -> YYYY-MM-01
+  let billMonth;
+  try {
+    const bm = new Date(data.billMonth);
+    billMonth = `${bm.getFullYear()}-${String(bm.getMonth() + 1).padStart(2, "0")}-01`;
+  } catch {
+    return res.status(400).json({ message: "Invalid billMonth format" });
+  }
+
+  // ✅ แปลง DueDate -> YYYY-MM-DD HH:mm:ss
+  let dueDate;
+  try {
+    const dd = new Date(data.DueDate);
+    dueDate = `${dd.getFullYear()}-${String(dd.getMonth() + 1).padStart(2, "0")}-${String(dd.getDate()).padStart(2, "0")} ${String(dd.getHours()).padStart(2, "0")}:${String(dd.getMinutes()).padStart(2, "0")}:${String(dd.getSeconds()).padStart(2, "0")}`;
+  } catch {
+    return res.status(400).json({ message: "Invalid DueDate format" });
+  }
+
   db.query(
-    "INSERT INTO bill (RoomID, billMonth, DueDate, waterprice, electricprice, taskprice, roomprice, missDateCount, missfee, totalPrice, billStatus,additionalFees) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    `INSERT INTO bill 
+      (RoomID, billMonth, DueDate, waterprice, electricprice, taskprice, roomprice, missDateCount, missfee, totalPrice, billStatus, additionalFees) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       data.RoomID,
-      data.billMonth,
-      data.DueDate,
-      data.waterprice !== undefined ? data.waterprice : 0,
-      data.electricprice !== undefined ? data.electricprice : 0,
-      data.taskprice !== undefined ? data.taskprice : 0,
+      billMonth,
+      dueDate,
+      data.waterprice ?? 0,
+      data.electricprice ?? 0,
+      data.taskprice ?? 0,
       data.roomprice,
-      data.missDateCount !== undefined ? data.missDateCount : 0,
-      data.missfee !== undefined ? data.missfee : 0,
-      data.totalPrice !== undefined ? data.totalPrice : 0,
+      data.missDateCount ?? 0,
+      data.missfee ?? 0,
+      data.totalPrice ?? 0,
       0, // billStatus
       JSON.stringify(data.additionalFees || []),
     ],
     (ex, result) => {
       if (ex) {
         console.error(ex);
-        res.status(500).json({ message: "Internet Server Error" });
+        return res.status(500).json({ message: "Internal Server Error", error: ex.message });
       }
-      res.status(200).json({ message: "Bill created!", billid: result.insertId });
+      return res.status(200).json({ message: "Bill created!", billid: result.insertId });
     }
   );
 });
+
 
 router.get("/", verifyToken, (req, res) => {
   let query =
@@ -76,9 +98,9 @@ router.get("/", verifyToken, (req, res) => {
 
 router.get("/paid", verifyToken, (req, res) => {
   db.query(
-    "SELECT u.id,b.* FROM bill b JOIN users u ON (u.roomid = b.roomid) WHERE billstatus!=0" +
+    "SELECT u.id,b.* FROM bill b JOIN users u ON (u.RoomID = b.RoomID) WHERE billstatus!=0" +
       (req.query.roomid && req.user.role == "admin"
-        ? ` AND roomid=${req.query.roomid}`
+        ? ` AND RoomID=${req.query.roomid}`
         : req.user.role == "user"
         ? ` AND id=${req.user.id}`
         : ""),

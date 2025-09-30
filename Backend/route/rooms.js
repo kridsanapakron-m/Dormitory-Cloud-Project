@@ -11,7 +11,7 @@ router.get("/", verifyToken, (req, res, next) => {
       .json({ message: "เฉพาะผู้ดูแลระบบที่ใช้คำสั่งนี้ได้" });
   }
   db.query(
-    `SELECT id, roomName, description, roomTypeId, floor, renterID, roomImg FROM room`,
+    `SELECT id, roomName, description, roomTypeId, floor, renterID, roomImg, available FROM room`,
     (error, rooms) => {
       if (error) {
         return next(error);

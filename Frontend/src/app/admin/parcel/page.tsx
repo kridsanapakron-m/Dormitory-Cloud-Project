@@ -75,7 +75,7 @@ const ParcelPage = () => {
                 parcelImgBase64 = await fileToBase64(newParcel.parcel_img);
             }
 
-            const res = await apiFetch('/add', {
+            const res = await apiFetch('/parcel/add', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -116,7 +116,7 @@ const ParcelPage = () => {
     // ---------------------- //
     const handlePickup = async (id: number) => {
         try {
-            const res = await apiFetch(`/delete/${id}`, {
+            const res = await apiFetch(`/parcel/delete/${id}`, {
                 method: "DELETE",
                 credentials: "include",
             });
@@ -142,7 +142,7 @@ const ParcelPage = () => {
     useEffect(() => {
         const fetchParcels = async () => {
             try {
-                const res = await apiFetch("/all", {
+                const res = await apiFetch("/parcel/all", {
                     method: "GET",
                     credentials: "include",
                 });

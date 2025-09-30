@@ -100,7 +100,7 @@ const RoomManagementPage = () => {
           roomName: room.roomName,
           roomTypeId: room.roomTypeId,
           floor: room.floor,
-          occupied: room.renterID !== null,
+          occupied: room.available !== 0, //sda
           description: room.description,
           roomImg: room.roomImg,
           renterID: room.renterID,

@@ -39,7 +39,7 @@ const ParcelPage = () => {
     useEffect(() => {
         const fetchParcels = async () => {
             try {
-                const res = await apiFetch(`/room`, {
+                const res = await apiFetch(`/parcel/room`, {
                     method: "GET",
                     credentials: "include",
                 });
