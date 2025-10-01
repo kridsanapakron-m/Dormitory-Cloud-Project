@@ -123,6 +123,8 @@ const UtilityPage = () => {
   const [previewItem, setPreviewItem] = useState<number | null>(null);
   const [isReceiptDialogOpen, setIsReceiptDialogOpen] = useState(false);
   const [RoomLoading,setRoomLoading] = useState(true)
+  const [unpaidBills, setUnpaidBills] = useState(0);
+
   useEffect(() => {
     setRoom([]);
     apiFetch("/rooms", {
@@ -253,6 +255,17 @@ const UtilityPage = () => {
     }
 
   }, [RoomLoading,newUtility.roomNumber, newUtility.month, rooms]);
+
+  useEffect(() => {
+    apiFetch('/main/bill/', {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    })
+    .then((res) => res.json())
+    .then((data) => setUnpaidBills(data.unpaidBills))
+    .catch(console.error);
+  }, []);
 
   const handleConfirmPayment = (id: number) => {
     const item = utilityData.find((item) => item.id === id);
@@ -443,22 +456,7 @@ const UtilityPage = () => {
   const currentMonthData = utilityData.filter(
     (item) => item.month === currentMonth
   );
-  const unpaidCount = currentMonthData.filter(
-    (item) => item.status === "unpaid"
-  ).length;
-  const totalElectric = currentMonthData.reduce(
-    (sum, item) => sum + item.electric,
-    0
-  );
-  const totalWater = currentMonthData.reduce(
-    (sum, item) => sum + item.water,
-    0
-  );
-  const totalAdditional = currentMonthData.reduce(
-    (sum, item) =>
-      sum + item.additionalFees.reduce((feeSum, fee) => feeSum + fee.amount, 0),
-    0
-  );
+  
   let oldmonth = "";
   if (isLoading) {
     return (
@@ -546,54 +544,13 @@ const UtilityPage = () => {
                       <p className="text-sm text-gray-500">
                         บิลที่ยังไม่ได้ตรวจสอบ
                       </p>
-                      <p className="text-2xl font-bold">{unpaidCount}</p>
+                      <p className="text-2xl font-bold">{unpaidBills}</p>
                     </div>
                     <div className="bg-amber-100 p-3 rounded-full">
                       <X className="h-5 w-5 text-amber-600" />
                     </div>
                   </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-500">ค่าไฟฟ้าทั้งหมด</p>
-                      <p className="text-2xl font-bold">
-                        ฿{totalElectric.toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="bg-yellow-100 p-3 rounded-full">
-                      <Zap className="h-5 w-5 text-yellow-600" />
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-500">ค่าน้ำทั้งหมด</p>
-                      <p className="text-2xl font-bold">
-                        ฿{totalWater.toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="bg-blue-100 p-3 rounded-full">
-                      <Droplets className="h-5 w-5 text-blue-600" />
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-500">
-                        ค่าใช้จ่ายเพิ่มเติมทั้งหมด
-                      </p>
-                      <p className="text-2xl font-bold">
-                        ฿{totalAdditional.toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="bg-purple-100 p-3 rounded-full">
-                      <PlusCircle className="h-5 w-5 text-purple-600" />
-                    </div>
-                  </CardContent>
-                </Card>
+                </Card>       
               </div>
 
               {/* Filters */}
@@ -700,10 +657,10 @@ const UtilityPage = () => {
                             0
                           );
                           const totalAmount =
-                            item.electric +
-                            item.water +
-                            additionalTotal +
-                            item.roomFee;
+                            Number(item.electric) +
+                            Number(item.water) +
+                            Number(additionalTotal) +
+                            Number(item.roomFee);
 
                           return (
                             <tr key={item.id} className="hover:bg-gray-50">
@@ -723,7 +680,7 @@ const UtilityPage = () => {
                                 {item.water.toLocaleString()}
                               </td>
                               <td className="px-4 py-3 text-gray-700">
-                                {item.roomFee.toLocaleString()}
+                                {Number(item.roomFee).toLocaleString("th-TH", { maximumFractionDigits: 0 })}
                               </td>
                               <td className="px-4 py-3">
                                 {additionalTotal > 0 ? (

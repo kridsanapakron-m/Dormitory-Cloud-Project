@@ -92,7 +92,7 @@ router.put('/edit/:id', verifyToken, (req, res) => {
 });
 
 router.get('/room', verifyToken, (req, res) => {
-    const { userId } = req.user.id;
+    const userId = req.user.id;
     
     db.db.query(`SELECT RoomID FROM users WHERE id = ?`, [userId], (error, results) => {
         if (error) {
@@ -104,11 +104,19 @@ router.get('/room', verifyToken, (req, res) => {
             return res.status(404).json({ message: 'ห้องไม่พบสำหรับ userId ที่กำหนด' });
         }
 
-        db.db.query(`SELECT * FROM parcel WHERE roomName = ?`, [user.RoomID], (error, results) => {
-            if (error) {
-                return res.status(500).json({ error: 'ไม่สามารถดึงพัสดุโดย userId ได้', details: error.message });
+        db.db.query(`SELECT roomName FROM room WHERE id = ?`, [user.RoomID], (error, results) => {
+            if (error) return res.status(500).json({ error: error.message });
+
+            const room = results[0];
+            if (!room) {
+                return res.status(404).json({ message: 'ไม่พบชื่อห้องจาก RoomID' });
             }
-            res.status(200).json(results);
+
+            db.db.query(`SELECT * FROM parcel WHERE roomName = ?`, [room.roomName], (error, results) => {
+                if (error) return res.status(500).json({ error: error.message });
+
+                res.status(200).json(results);
+            });
         });
     });
 });

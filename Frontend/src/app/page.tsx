@@ -12,11 +12,12 @@ import { teamMembers, faqs, reviews, HowTo } from '@/components/data';
 import { getNewDorms } from '@/components/data';
 
 import { TestimonialCard } from '@/components/landing/testimonial';
-import { TeamMember } from '@/components/landing/team';
 import { DormCard } from '@/components/landing/dorm';
 
 import CountUp from "react-countup";
 import { useInView } from "react-intersection-observer";
+import { useSettings } from "@/hooks/useSettings";
+
 
 export default function HomePage() {
   const router = useRouter();
@@ -52,6 +53,10 @@ export default function HomePage() {
     },
     tap: { scale: 0.95 }
   };
+
+  const { settings, loading } = useSettings();
+
+
 
   return (
     <div className="min-h-screen bg-purple-50">
@@ -400,36 +405,34 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-20 pt-24 lg:pt-40">
-        <div className="container mx-auto px-4 max-w-[1280px]">
-          <div className="flex flex-col md:flex-row items-center gap-12">
-            <div data-aos="flip-right" className="md:w-1/2">
-              <h2 className="text-4xl font-bold mb-6 text-primary">สถานที่ตั้ง</h2>
-              <p className="text-gray-600 mb-4">
-                หอพักนักศึกษาสจล. 1 ถ. ฉลองกรุง แขวงลาดกระบัง<br />
-                เขตลาดกระบัง กรุงเทพมหานคร 10520
-              </p>
-              <p className="text-gray-600">
-                เดินทางสะดวกด้วยรถไฟฟ้า รถไฟ และรถโดยสารประจำทาง
-              </p>
-            </div>
-            <div className="md:w-1/2">
-              <div data-aos="flip-left" className="rounded-xl overflow-hidden shadow-lg">
-                <iframe 
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d751.978130109895!2d100.7742791176281!3d13.729006555356959!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x311d664a2b9c8ef9%3A0x8d13a1d2e40db4f0!2sKMITL%20Student%20Dormitory!5e0!3m2!1sth!2sth!4v1740216130804!5m2!1sth!2sth"
-                  className="w-full h-96"
-                  loading="lazy"
-                />
+      { settings?.location && settings?.google_map && (
+        <section className="py-20 pt-24 lg:pt-40">
+          <div className="container mx-auto px-4 max-w-[1280px]">
+            <div className="flex flex-col md:flex-row items-center gap-12">
+              <div data-aos="flip-right" className="md:w-1/2">
+                <h2 className="text-4xl font-bold mb-6 text-primary">สถานที่ตั้ง</h2>
+                <p className="text-gray-600 mb-4">
+                  {settings?.location}
+                </p>
+              </div>
+              <div className="md:w-1/2">
+                <div data-aos="flip-left" className="rounded-xl overflow-hidden shadow-lg">
+                  <iframe 
+                    src={settings.google_map || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d7962196.8724786155!2d96.19221068812328!3d12.98518719213865!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x304d8df747424db1%3A0x9ed72c880757e802!2z4Lib4Lij4Liw4LmA4LiX4Lio4LmE4LiX4Lii!5e0!3m2!1sth!2sth!4v1759332170243!5m2!1sth!2sth"}
+                    className="w-full h-96"
+                    loading="lazy"
+                  />
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+     )}
 
 
 
 
-    <section id="faq" className='bg-purple-50 pt-24 lg:pt-40'>
+    <section id="faq" className='bg-purple-50 pt-24 lg:pt-40 pb-20'>
       <div className='container mx-auto px-4'>
         <div className="text-center mb-12">
             <h1 data-aos="fade-up" className="text-3xl md:text-4xl font-semibold">FAQs</h1>
@@ -474,26 +477,6 @@ export default function HomePage() {
         </div>
       </div>
     </section>
-
-
-
-    <section id="team" className="py-20 pt-24 lg:pt-40 mb-16">
-        <div className="container mx-auto px-4  ">
-          <div className="text-center mb-24 max-w-[1280px] mx-auto">
-          <h1 data-aos="fade-up" className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-pink-500  text-transparent bg-clip-text animate-gradient">
-            Meet The Developer Team
-          </h1>
-            <p data-aos="fade-up" className="text-lg md:text-xl text-gray-600 mt-4">เด็ก IT 4 คนที่ต้องประสบภัยโปรเจค</p>
-          </div>
-          
-          <div data-aos="flip-up" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {teamMembers.map((member, index) => (
-              <TeamMember key={member.studentId} {...member} />
-            ))}
-          </div>
-        </div>
-      </section>
-
     <Footer />
     </div>
   );

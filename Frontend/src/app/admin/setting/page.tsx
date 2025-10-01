@@ -12,9 +12,9 @@ import { apiFetch } from "@/lib/api";
 import { MapPin, Link, Building2, Phone, Mail, Facebook, Instagram } from "lucide-react";
 
 interface SystemSettings {
-  name: string;
+  system_name: string;
   location: string;
-  googleMap: string;
+  google_map: string;
   phone: string;
   email: string;
   facebook: string;
@@ -23,13 +23,13 @@ interface SystemSettings {
 
 const SettingsPage = () => {
   const [settings, setSettings] = useState<SystemSettings>({
-    name: "",
+    system_name: "",
     location: "",
-    googleMap: "",
     phone: "",
     email: "",
     facebook: "",
     instagram: "",
+    google_map: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -38,7 +38,7 @@ const SettingsPage = () => {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const res = await apiFetch("/", {
+        const res = await apiFetch("/landingpage/1", {
           method: "GET",
           credentials: "include",
         });
@@ -47,7 +47,6 @@ const SettingsPage = () => {
         setSettings(prev => ({
           ...prev,
           ...data,
-          googleMap: data.google_map || "",
         }));
       } catch (error) {
         console.error(error);
@@ -61,7 +60,7 @@ const SettingsPage = () => {
   const handleSave = async () => {
     try {
       setLoading(true);
-      const res = await apiFetch("/", {
+      const res = await apiFetch("/landingpage/1", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -101,9 +100,9 @@ const SettingsPage = () => {
                     <Input
                       className="pl-9"
                       type="text"
-                      value={settings.name}
+                      value={settings.system_name}
                       onChange={(e) =>
-                        setSettings({ ...settings, name: e.target.value })
+                        setSettings({ ...settings, system_name: e.target.value })
                       }
                       placeholder="เช่น Dormitory Management"
                     />
@@ -203,9 +202,9 @@ const SettingsPage = () => {
                     <Input
                       className="pl-9"
                       type="url"
-                      value={settings.googleMap}
+                      value={settings.google_map}
                       onChange={(e) =>
-                        setSettings({ ...settings, googleMap: e.target.value })
+                        setSettings({ ...settings, google_map: e.target.value })
                       }
                       placeholder="วางลิงก์ Google Map ที่นี่"
                     />
@@ -213,10 +212,10 @@ const SettingsPage = () => {
                       กรุณาใช้ลิงก์ <span className="font-medium">Embed</span> เท่านั้น  
                       (Google Maps → Share → Embed a map → Copy HTML → ใช้เฉพาะค่า <code>src</code>)
                     </p>
-                    {settings.googleMap && (
+                    {settings.google_map && (
                       <div className="mt-4 rounded-xl overflow-hidden shadow-md">
                         <iframe
-                          src={settings.googleMap}
+                          src={settings.google_map}
                           className="w-full h-80 border-0"
                           loading="lazy"
                           allowFullScreen

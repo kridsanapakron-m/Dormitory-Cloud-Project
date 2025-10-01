@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useSettings } from "@/hooks/useSettings";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -26,13 +27,15 @@ export default function Navbar() {
     { id: 'faq', label: 'คำถามที่พบบ่อย' }
   ];
 
+  const { settings, loading } = useSettings();
+
 
   return (
     <nav className="fixed w-full top-0 z-50 bg-white shadow-md transition-all duration-500">
       <div className="mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           <div className="text-purple-600 text-xl font-bold">
-            Dormitory
+            {settings?.system_name || "Dormitory"}
           </div>
 
           <div className="hidden md:flex space-x-6">
