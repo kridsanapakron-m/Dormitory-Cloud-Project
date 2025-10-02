@@ -26,6 +26,7 @@ const mainRouter = require('./route/main');
 const chatRouter = require('./route/chat');
 const parcelRouter = require('./route/parcel');
 const landingPageRouter = require('./route/landingpage');
+const roomtypeRouter = require('./route/roomtype');
 
 
 const app = express();
@@ -71,6 +72,7 @@ app.use('/main', mainRouter);
 app.use('/chat', chatRouter);
 app.use('/parcel', parcelRouter);
 app.use('/landingpage', landingPageRouter);
+app.use('/roomtype', roomtypeRouter);
 
 // Swagger setup
 const swaggerOptions = {
