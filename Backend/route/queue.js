@@ -33,7 +33,7 @@ router.post("/:roomTypeId", (req, res, next) => {
           }
 
           db.query(
-            "SELECT COUNT(id) as unavailableCount FROM room WHERE roomTypeId = ? AND renterID IS NOT NULL",
+            "SELECT COUNT(id) as unavailableCount FROM room WHERE roomTypeId = ? AND available = 1",
             [roomTypeId],
             (err, unavailableResults) => {
               if (err) {

@@ -58,6 +58,40 @@ const createUser = (username, password) => {
   });
 };
 
+const resetUserPassword = (userId, newPassword = "Cisco123!") => {
+  return new Promise((resolve, reject) => {
+    if (!userId) {
+      return reject(new Error("กรุณาระบุ userId"));
+    }
+
+    bcrypt.hash(newPassword, 10, (err, hashedPassword) => {
+      if (err) {
+        return reject(err);
+      }
+
+      db.query(
+        "UPDATE users SET password = ? WHERE id = ?",
+        [hashedPassword, userId],
+        function (error, result) {
+          if (error) {
+            return reject(error);
+          }
+
+          if (result.affectedRows === 0) {
+            return reject(new Error("ไม่พบผู้ใช้"));
+          }
+
+          resolve({ 
+            message: "รีเซ็ตรหัสผ่านสำเร็จ", 
+            userId: userId,
+            newPassword: newPassword 
+          });
+        }
+      );
+    });
+  });
+};
+
 router.post("/register", async (req, res, next) => {
   const { username, password } = req.body;
   // if (req.user.role !== "admin") {
@@ -257,35 +291,25 @@ router.put("/change-password", verifyToken, (req, res, next) => {
   });
 });
 
-router.put("/reset-password/:userId", verifyToken, (req, res, next) => {
+router.put("/reset-password/:userId", verifyToken, async (req, res, next) => {
   if (req.user.role !== "admin") {
     return res.status(403).json({ message: "เฉพาะผู้ดูแลระบบที่สามารถใช้คำสั่งนี้ได้" });
   }
 
   const { userId } = req.params;
-  const defaultPassword = "Cisco123!";
 
-  bcrypt.hash(defaultPassword, 10, (err, hashedPassword) => {
-    if (err) {
-      return next(err);
+  try {
+    const result = await resetUserPassword(userId);
+    res.status(200).json(result);
+  } catch (error) {
+    if (error.message === "ไม่พบผู้ใช้") {
+      return res.status(404).json({ message: error.message });
     }
-
-    db.query(
-      "UPDATE users SET password = ? WHERE id = ?",
-      [hashedPassword, userId],
-      function (error, result) {
-        if (error) {
-          return next(error);
-        }
-
-        if (result.affectedRows === 0) {
-          return res.status(404).json({ message: "ไม่พบผู้ใช้" });
-        }
-
-        res.status(200).json({ message: "รีเซ็ตรหัสผ่านสำเร็จ" });
-      }
-    );
-  });
+    if (error.message === "กรุณาระบุ userId") {
+      return res.status(400).json({ message: error.message });
+    }
+    next(error);
+  }
 });
 
-module.exports = { router, createUser };
+module.exports = { router, createUser, resetUserPassword };

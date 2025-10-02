@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const { db } = require('../db');
 const { verifyToken } = require('../middleware/auth.middleware');
 
 router.post('/add', verifyToken, (req, res) => {
@@ -13,7 +13,7 @@ router.post('/add', verifyToken, (req, res) => {
         CleanIncomingDate = IncomingDate.replace('Z', '').split('.')[0].replace('T', ' ');
     }
 
-    db.db.query(
+    db.query(
         `SELECT available FROM room WHERE roomName = ?`,
         [roomName],
         function (error, results) {
@@ -31,7 +31,7 @@ router.post('/add', verifyToken, (req, res) => {
             }
             
             // available = 1 ให้เพิ่มพัสดุได้
-            db.db.query(
+            db.query(
                 `INSERT INTO parcel (roomName, IncomingDate, parcel_img) VALUES (?, ?, ?)`,
                 [roomName, CleanIncomingDate, parcel_img],
                 function (error, result) {
@@ -50,7 +50,7 @@ router.get('/all', verifyToken, (req, res) => {
         return res.status(403).json({ message: 'เฉพาะผู้ดูแลระบบเท่านั้น' });
     }
     
-    db.db.query(`SELECT * FROM parcel`, (error, results) => {
+    db.query(`SELECT * FROM parcel`, (error, results) => {
         if (error) {
             return res.status(500).json({ error: 'ไม่สามารถดึงพัสดุได้'});
         }
@@ -64,7 +64,7 @@ router.delete('/delete/:id', verifyToken, (req, res) => {
     }
     const { id } = req.params;
     
-    db.db.query(`DELETE FROM parcel WHERE id = ?`, [id], function (error, result) {
+    db.query(`DELETE FROM parcel WHERE id = ?`, [id], function (error, result) {
         if (error) {
             return res.status(500).json({ error: 'ไม่สามารถลบพัสดุได้'});
         }
@@ -79,7 +79,7 @@ router.put('/edit/:id', verifyToken, (req, res) => {
     const { id } = req.params;
     const { roomName, IncomingDate, parcel_img } = req.body;
     
-    db.db.query(
+    db.query(
         `UPDATE parcel SET roomName = ?, IncomingDate = ?, parcel_img = ? WHERE id = ?`,
         [roomName, IncomingDate, parcel_img, id],
         function (error, result) {
@@ -94,7 +94,7 @@ router.put('/edit/:id', verifyToken, (req, res) => {
 router.get('/room', verifyToken, (req, res) => {
     const userId = req.user.id;
     
-    db.db.query(`SELECT RoomID FROM users WHERE id = ?`, [userId], (error, results) => {
+    db.query(`SELECT RoomID FROM users WHERE id = ?`, [userId], (error, results) => {
         if (error) {
             return res.status(500).json({ error: 'ไม่สามารถดึงพัสดุโดย userId ได้', details: error.message });
         }
@@ -104,7 +104,7 @@ router.get('/room', verifyToken, (req, res) => {
             return res.status(404).json({ message: 'ห้องไม่พบสำหรับ userId ที่กำหนด' });
         }
 
-        db.db.query(`SELECT roomName FROM room WHERE id = ?`, [user.RoomID], (error, results) => {
+        db.query(`SELECT roomName FROM room WHERE id = ?`, [user.RoomID], (error, results) => {
             if (error) return res.status(500).json({ error: error.message });
 
             const room = results[0];
@@ -112,7 +112,7 @@ router.get('/room', verifyToken, (req, res) => {
                 return res.status(404).json({ message: 'ไม่พบชื่อห้องจาก RoomID' });
             }
 
-            db.db.query(`SELECT * FROM parcel WHERE roomName = ?`, [room.roomName], (error, results) => {
+            db.query(`SELECT * FROM parcel WHERE roomName = ?`, [room.roomName], (error, results) => {
                 if (error) return res.status(500).json({ error: error.message });
 
                 res.status(200).json(results);
@@ -127,7 +127,7 @@ router.get('/users', verifyToken, (req, res) => {
         return res.status(403).json({ message: 'เฉพาะผู้ดูแลระบบเท่านั้น' });
     }
     
-    db.db.query(`SELECT firstname, roomName FROM users`, (error, results) => {
+    db.query(`SELECT firstname, roomName FROM users`, (error, results) => {
         if (error) {
             return res.status(500).json({ error: 'ไม่สามารถดึงข้อมูลผู้ใช้งานได้'});
         }
