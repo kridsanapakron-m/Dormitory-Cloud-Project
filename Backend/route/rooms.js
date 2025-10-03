@@ -10,8 +10,12 @@ router.get("/", verifyToken, (req, res, next) => {
       .status(403)
       .json({ message: "เฉพาะผู้ดูแลระบบที่ใช้คำสั่งนี้ได้" });
   }
+
   db.query(
-    `SELECT id, roomName, description, roomTypeId, floor, renterID, roomImg, available FROM room`,
+    //`SELECT id, roomName, description, roomTypeId, floor, renterID, roomImg, available FROM room`,
+      `SELECT r.id, r.roomName, r.description, r.roomTypeId, r.floor, r.renterID, r.roomImg, r.available, rt.roomprice 
+    FROM room r 
+    LEFT JOIN roomtype rt ON r.roomTypeId = rt.roomtypeid`,
     (error, rooms) => {
       if (error) {
         return next(error);
@@ -34,7 +38,11 @@ router.get("/:roomId", verifyToken, (req, res, next) => {
   }
 
   db.query(
-    `SELECT id, roomName, description, roomTypeId, floor, renterID FROM room WHERE id = ?`,
+    //`SELECT id, roomName, description, roomTypeId, floor, renterID FROM room WHERE id = ?`,
+    `SELECT r.id, r.roomName, r.description, r.roomTypeId, r.floor, r.renterID, rt.roomprice 
+    FROM room r 
+    LEFT JOIN roomtype rt ON r.roomTypeId = rt.roomtypeid
+    WHERE r.id = ?`,
     [roomId],
     (error, results) => {
       if (error) {
