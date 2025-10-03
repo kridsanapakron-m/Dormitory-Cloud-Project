@@ -5,7 +5,30 @@ const router = express.Router();
 
 router.get("/", (req, res, next) => {
   db.query(
-    `SELECT id, roomtypeid, name, description, roomtypeimg FROM roomtype ORDER BY id DESC`,
+    `SELECT id, roomtypeid, name, description, roomtypeimg, roomprice FROM roomtype ORDER BY id DESC`,
+    (error, results) => {
+      if (error) {
+        return next(error);
+      }
+      res.status(200).json(results);
+    }
+  );
+});
+router.get("/roomtypes", (req, res, next) => {
+  db.query(
+    `SELECT id, roomtypeid FROM roomtype ORDER BY id DESC`,
+    (error, results) => {
+      if (error) {
+        return next(error);
+      }
+      res.status(200).json(results);
+    }
+  );
+});
+
+router.get("/price", (req, res, next) => {
+  db.query(
+    `SELECT id, roomtypeid, roomprice FROM roomtype ORDER BY id DESC`,
     (error, results) => {
       if (error) {
         return next(error);
@@ -23,7 +46,7 @@ router.get("/:id", (req, res, next) => {
   }
 
   db.query(
-    `SELECT id, roomtypeid, name, description, roomtypeimg FROM roomtype WHERE id = ?`,
+    `SELECT id, roomtypeid, name, description, roomtypeimg, roomprice FROM roomtype WHERE id = ?`,
     [id],
     (error, results) => {
       if (error) {
@@ -46,7 +69,7 @@ router.post("/", verifyToken, (req, res, next) => {
       .json({ message: "เฉพาะผู้ดูแลระบบที่ใช้คำสั่งนี้ได้" });
   }
 
-  const { roomtypeid, name, description, roomtypeimg } = req.body;
+  const { roomtypeid, name, description, roomtypeimg, roomprice } = req.body;
 
   if (!roomtypeid || typeof roomtypeid !== "string" || roomtypeid.length < 1) {
     return res.status(400).json({ message: "ข้อมูล รหัสประเภทห้อง ไม่ถูกต้อง" });
@@ -72,11 +95,11 @@ router.post("/", verifyToken, (req, res, next) => {
         return res.status(409).json({ message: "รหัสประเภทห้องนี้มีในระบบแล้ว" });
       }
 
-      const sql = `INSERT INTO roomtype (roomtypeid, name, description, roomtypeimg) VALUES (?, ?, ?, ?)`;
+      const sql = `INSERT INTO roomtype (roomtypeid, name, description, roomtypeimg, roomprice) VALUES (?, ?, ?, ?, ?)`;
 
       db.query(
         sql,
-        [roomtypeid, name, description, roomtypeimg],
+        [roomtypeid, name, description, roomtypeimg, roomprice],
         function (error, result) {
           if (error) {
             return next(error);
@@ -105,7 +128,7 @@ router.put("/:id", verifyToken, (req, res, next) => {
     return res.status(400).json({ message: "โปรดระบุ ID ประเภทห้อง" });
   }
 
-  const { roomtypeid, name, description, roomtypeimg } = req.body;
+  const { roomtypeid, name, description, roomtypeimg, roomprice } = req.body;
 
   if (roomtypeid !== undefined) {
     if (typeof roomtypeid !== "string" || roomtypeid.length < 1) {
@@ -125,11 +148,11 @@ router.put("/:id", verifyToken, (req, res, next) => {
     }
   }
 
-  const sql = `UPDATE roomtype SET roomtypeid = ?, name = ?, description = ?, roomtypeimg = ? WHERE id = ?`;
+  const sql = `UPDATE roomtype SET roomtypeid = ?, name = ?, description = ?, roomtypeimg = ?, roomprice = ? WHERE id = ?`;
 
   db.query(
     sql,
-    [roomtypeid, name, description, roomtypeimg, id],
+    [roomtypeid, name, description, roomtypeimg, roomprice, id],
     function (error, result) {
       if (error) {
         return next(error);
