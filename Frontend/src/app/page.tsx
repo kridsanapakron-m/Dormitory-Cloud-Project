@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect} from 'react';
 import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -8,23 +8,42 @@ import { useRouter } from 'next/navigation'
 import { Globe, Phone, CalendarCheck, CreditCard, Wrench, Lightbulb, SprayCan, Receipt, Clock, FileCheck, QrCode, Calculator, Mail, Home, Building2  } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-import { teamMembers, faqs, reviews, HowTo } from '@/components/data';
-import { getNewDorms } from '@/components/data';
+import { faqs, reviews, HowTo } from '@/components/data';
 
 import { TestimonialCard } from '@/components/landing/testimonial';
 import { DormCard } from '@/components/landing/dorm';
-
 import CountUp from "react-countup";
 import { useInView } from "react-intersection-observer";
 import { useSettings } from "@/hooks/useSettings";
+import { apiFetch } from "@/lib/api";
+import { DormType } from "@/components/types";
 
 
 export default function HomePage() {
   const router = useRouter();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
-  const newDorms = getNewDorms();
+
+  const [dorms, setDorms] = useState<DormType[]>([]);
+  const [dormsLoading, setDormsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.5 });
+
+  useEffect(() => {
+      const fetchDorms = async () => {
+        try {
+          const res = await apiFetch("/roomtype", { method: "GET" });
+          if (!res.ok) throw new Error("โหลดข้อมูลห้องพักล้มเหลว");
+          const data: DormType[] = await res.json();
+          setDorms(data);
+        } catch (err: any) {
+          setError(err.message);
+        } finally {
+          setDormsLoading(false);
+        }
+      };
+      fetchDorms();
+    }, []);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -55,7 +74,6 @@ export default function HomePage() {
   };
 
   const { settings, loading } = useSettings();
-
 
 
   return (
@@ -351,22 +369,22 @@ export default function HomePage() {
         </div>
       </section>
 
-
-      <section id="dorm-type" className="pt-24 lg:pt-40">
+      {dorms && dorms.length > 0 && (
+        <section id="dorm-type" className="pt-24 lg:pt-40">
         <div className="container mx-auto px-4 max-w-[1280px]">
           <div data-aos="fade-up" className="text-center mb-16">
             <h1 className="text-3xl md:text-4xl font-semibold">ประเภทห้องพัก</h1>
             <p className="text-lg md:text-xl text-primary">หลากหลายรูปแบบให้เลือก</p>
           </div>
 
-          <h2  data-aos="zoom-out-right"  className="text-3xl text-primary font-semibold my-6">ตึกใหม่</h2>
           <div data-aos="fade-up" className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {newDorms.map(dorm => (
+          {dorms.map(dorm => (
             <DormCard key={dorm.id} dorm={dorm} />
           ))}
           </div>
         </div>
       </section>
+      )}
 
       <section id="step" className="py-16 pt-24 lg:pt-40">
         <div className="container mx-auto px-4">

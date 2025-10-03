@@ -10,10 +10,10 @@ import {
   Users,
   FileText,
   LogOut,
-  HelpCircle,
   Menu,
   Bell,
   Package,
+  Bed,
   Settings2
 } from "lucide-react";
 import {
@@ -58,6 +58,11 @@ const Sidebar = ({ className }: SidebarProps) => {
       title: "แก้ไขห้องพัก",
       icon: Home,
       href: "/admin/room",
+    },
+    {
+      title: "เเก้ไขประเภทห้อง",
+      icon: Bed,
+      href: "/admin/roomtype"
     },
     {
       title: "คิวแม่บ้าน",
@@ -161,14 +166,6 @@ const Sidebar = ({ className }: SidebarProps) => {
           >
             <LogOut className="mr-2 h-6 w-6 md:h-8 md:w-8" />
             ออกจากระบบ
-          </Button>
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-[18px] py-6 transition-colors duration-200"
-            onClick={() => handleNavigation('/help')}
-          >
-            <HelpCircle className="mr-2 h-6 w-6 md:h-8 md:w-8" />
-            ช่วยเหลือ & สนับสนุน
           </Button>
         </div>
       </div>

@@ -32,13 +32,10 @@ export interface Team {
 
 export type DormType = {
   id: string;
-  title: string;
-  image: string;
+  roomtypeid: string;
+  roomtypeimg: string;
   description: string;
-  price: number;
-  building: 'new' | 'old';
-  features?: string[];
-  amenities?: string[];
+  roomprice: number;
 };
 
 //end of landing page

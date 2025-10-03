@@ -93,7 +93,7 @@ export default function Footer() {
             </a>
             ,
             <a
-              href="https://github.com/66070124"
+              href="https://github.com/flookpt"
               target="_blank"
               className="text-purple-600 hover:text-blue-500 mx-1"
             >

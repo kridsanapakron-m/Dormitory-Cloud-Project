@@ -91,9 +91,6 @@ const Signin = () => {
             <div>
               <h2 className="text-4xl py-1 font-bold w-fit bg-gradient-to-bl from-primary to-[#3B82F6] bg-clip-text text-transparent">Sign in</h2>
               <p className="text-gray-600">มาเริ่มต้นสัมผัสประสบการณ์ใหม่ไปกับเราเลย</p>
-              <p className="text-gray-600 text-sm">
-                ยังไม่มีบัญชี? <Link href="register" className="text-blue-600 hover:underline">สมัครสมาชิก</Link>
-              </p>
             </div>
 
             <form onSubmit={submitLogin} className="space-y-4">

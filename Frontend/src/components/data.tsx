@@ -2,47 +2,9 @@
 import { Testimonial } from './types';
 import { FAQ } from './types';
 import { HOW } from './types';
-import { Team } from './types';
-import { DormType } from '../components/types';
 
 
 //landing page
-
-export const teamMembers: Team[] = [
-  {
-    name: "ณฐกร หอมพันนา",
-    studentId: "66070055",
-    role: "Project Manager",
-    githubUrl: "https://github.com/MAK1z",
-    email: "mailto:66070055@kmitl.ac.th",
-    imageUrl: "/profile/namon.jpg"
-  },
-  {
-    name: "อรุชา เขมทโรนนท์",
-    studentId: "66070220",
-    role: "Frontend Developer",
-    githubUrl: "https://github.com/Annerez",
-    email: "mailto:66070220@kmitl.ac.th",
-    imageUrl: "/profile/arucha.png"
-  },
-  {
-    name: "กฤษณปกรณ์ เมรัตรัน์",
-    studentId: "66070006",
-    role: "Backend Developer",
-    githubUrl: "https://github.com/kirdsanapakron-m",
-    email: "mailto:66070006@kmitl.ac.th",
-    imageUrl: "/profile/krid.jpg"
-  },
-  {
-    name: "คณิตพัฒน์ เตชะอัครเศรษฐ์",
-    studentId: "66070245",
-    role: "Backend Developer",
-    githubUrl: "https://github.com/TKanidpat",
-    email: "mailto:66070245@kmitl.ac.th",
-    imageUrl: "/profile/tenten.jpg"
-  }
-];
-
 export const reviews: Testimonial[] = [
   {
     id: 1,
@@ -128,79 +90,6 @@ export const HowTo: HOW[] = [
     description: "รับกุญแจและเข้าพักในห้องใหม่" 
   }
 ];
-
-export const dorms: DormType[] = [
-  {
-    id: '1',
-    title: 'Type A',
-    description: 'ห้องพักมาตรฐาน พร้อมเฟอร์นิเจอร์ครบครัน',
-    image: "/room/typea.png",
-    price: 8400,
-    building: 'new',
-    features: [
-      'เตียงนอน 2 เตียง',
-      'โต๊ะทำงานพร้อมเก้าอี้',
-      'ตู้เสื้อผ้า',
-      'เครื่องปรับอากาศ',
-      'ห้องน้ำในตัว',
-      'ตู้เย็น'
-    ],
-    amenities: [
-      'โซนซักผ้า',
-      'ห้องอ่านหนังสือ',
-      'ระบบรักษาความปลอดภัย 24 ชม.',
-      'Wi-Fi ความเร็วสูง'
-    ]
-  },
-  {
-    id: '2',
-    title: 'Type B',
-    description: 'ห้องพักมาตรฐาน พร้อมเฟอร์นิเจอร์ครบครัน',
-    image: "/room/typeb.png",
-    price: 12000,
-    building: 'new',
-    features: [
-      'เตียงนอน 2 เตียง',
-      'โต๊ะทำงานพร้อมเก้าอี้',
-      'ตู้เสื้อผ้า',
-      'เครื่องปรับอากาศ',
-      'ห้องน้ำในตัว',
-      'ตู้เย็น'
-    ],
-    amenities: [
-      'โซนซักผ้า',
-      'ห้องอ่านหนังสือ',
-      'ระบบรักษาความปลอดภัย 24 ชม.',
-      'Wi-Fi ความเร็วสูง'
-    ]
-  },
-  {
-    id: '3',
-    title: 'Type C',
-    description: 'ห้องพักขนาดใหญ่พิเศษ พร้อมเฟอร์นิเจอร์ครบครัน',
-    image: "/room/typec.png",
-    price: 13400,
-    building: 'new',
-    features: [
-      'เตียงนอน 2 เตียง',
-      'โต๊ะทำงานพร้อมเก้าอี้',
-      'ตู้เสื้อผ้า',
-      'เครื่องปรับอากาศ',
-      'ห้องน้ำในตัว',
-      'ตู้เย็น',
-      'โซฟา'
-    ],
-    amenities: [
-      'โซนซักผ้า',
-      'ห้องอ่านหนังสือ',
-      'ระบบรักษาความปลอดภัย 24 ชม.',
-      'Wi-Fi ความเร็วสูง'
-    ]
-  },
-];
-
-export const getNewDorms = () => dorms.filter(dorm => dorm.building === 'new');
-export const getOldDorms = () => dorms.filter(dorm => dorm.building === 'old');
 
 //end of landing page
 

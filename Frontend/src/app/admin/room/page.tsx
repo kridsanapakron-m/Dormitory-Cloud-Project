@@ -48,11 +48,10 @@ type RoomType = {
   renterID: string | null;
 };
 
-const roomTypeOptions = [
-  { id: "A", name: "Type A" },
-  { id: "B", name: "Type B" },
-  { id: "C", name: "Type C" },
-];
+type RoomTypeOption = {
+  id: string;
+  name: string;
+};
 
 const RoomManagementPage = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -76,6 +75,7 @@ const RoomManagementPage = () => {
   const [editRoomError, setEditRoomError] = useState<string | null>(null);
   const [originalRoomImg, setOriginalRoomImg] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState(false);
+  const [roomTypeOptions, setRoomTypeOptions] = useState<RoomTypeOption[]>([]);
 
   const router = useRouter();
 
@@ -100,7 +100,7 @@ const RoomManagementPage = () => {
           roomName: room.roomName,
           roomTypeId: room.roomTypeId,
           floor: room.floor,
-          occupied: room.available !== 0, //sda
+          occupied: room.available === 1, //sda
           description: room.description,
           roomImg: room.roomImg,
           renterID: room.renterID,
@@ -113,6 +113,32 @@ const RoomManagementPage = () => {
     };
 
     fetchRooms();
+  }, []);
+
+  // fetch roomType options
+  useEffect(() => {
+    const fetchRoomTypes = async () => {
+      try {
+        const res = await apiFetch("/roomtype", {
+          method: "GET",
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error("Failed to fetch room types");
+
+        const data = await res.json();
+
+        const mapped = data.map((rt: any) => ({
+          id: rt.roomtypeid,
+          name: rt.name,
+        }));
+
+        setRoomTypeOptions(mapped);
+      } catch (err) {
+        console.error("Error fetching room types:", err);
+      }
+    };
+
+    fetchRoomTypes();
   }, []);
 
   const filteredRooms = rooms.filter(
@@ -284,7 +310,7 @@ const RoomManagementPage = () => {
         roomName: room.roomName,
         roomTypeId: room.roomTypeId,
         floor: room.floor,
-        occupied: room.renterID != null,
+        occupied: room.available === 1,
         description: room.description,
         roomImg: room.roomImg,
         renterID: room.renterID,
@@ -296,7 +322,7 @@ const RoomManagementPage = () => {
         roomName: "",
         roomTypeId: "A",
         floor: 1,
-        occupied: false,
+        occupied: true,
         description: "",
         roomImg: "",
         renterID: null,
@@ -407,7 +433,7 @@ const RoomManagementPage = () => {
         roomName: room.roomName,
         roomTypeId: room.roomTypeId,
         floor: room.floor,
-        occupied: room.renterID !== null,
+        occupied: room.available === 1,
         description: room.description,
         roomImg: room.roomImg,
         renterID: room.renterID,
@@ -466,7 +492,7 @@ const RoomManagementPage = () => {
         roomName: room.roomName,
         roomTypeId: room.roomTypeId,
         floor: room.floor,
-        occupied: room.renterID != null,
+        occupied: room.available === 1,
         description: room.description,
         roomImg: room.roomImg,
         renterID: room.renterID,
@@ -535,11 +561,10 @@ const RoomManagementPage = () => {
                         fill
                       />
                       <Badge
-                        className={`absolute top-2 right-2 ${
-                          room.occupied
+                        className={`absolute top-2 right-2 ${room.occupied
                             ? "bg-red-100 text-red-800 border-red-200"
                             : "bg-green-100 text-green-800 border-green-200"
-                        }`}
+                          }`}
                       >
                         {room.occupied ? "ไม่ว่าง" : "ว่าง"}
                       </Badge>

@@ -8,6 +8,7 @@ import {
   Package,
   Bell,
   Settings2,
+  Bed,
   DollarSign,
 } from "lucide-react";
 import Link from "next/link";
@@ -106,6 +107,14 @@ const AdminMain = () => {
     },
     {
       id: 3,
+      title: "แก้ไขประเภทห้องพัก",
+      description: "จัดการประเภทห้องพัก",
+      icon: <Bed className="h-8 w-8 text-sky-500" />,
+      path: "/admin/roomtype",
+      color: "bg-cyan-50 hover:bg-cyan-100",
+    },
+    {
+      id: 4,
       title: "บันทึกค่าสาธารณูปโภค",
       description: "ดูแลค่าสาธารณูประโภคผู้เข้าพัก",
       icon: <DollarSign className="h-8 w-8 text-purple-500" />,

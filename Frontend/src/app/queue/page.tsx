@@ -3,19 +3,19 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import Sidebar from "@/components/Sidebar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Search,
   CalendarRange,
-  AlertTriangle,
   CalendarIcon,
   Clock,
+  Mail,
+  Contact,
+  FolderPen,
 } from "lucide-react";
 import {
   Dialog,
@@ -42,45 +42,10 @@ type RoomType = {
   id: number;
   roomType: string;
   details: string;
+  name: string
   imageSrc: string;
-  price: number;
+  roomprice: number;
 };
-
-// Appointment type definition
-type AppointmentType = {
-  id: number;
-  roomTypeId: number;
-  preferredDate: Date;
-  preferredTime: string;
-  specialRequests: string;
-  status: "pending" | "confirmed" | "cancelled";
-  createdAt: Date;
-};
-
-// Sample room types data
-const sampleRoomTypes: RoomType[] = [
-  {
-    id: 1,
-    roomType: "A",
-    details: "ห้องพัดลมสำหรับ 2 คน พร้อมห้องน้ำในตัว สำหรับนักศึกษา",
-    imageSrc: "/room/typea.png",
-    price: 8400,
-  },
-  {
-    id: 2,
-    roomType: "B",
-    details: "ห้องปรับอากาศสำหรับ 2 คน พร้อมห้องน้ำในตัว",
-    imageSrc: "/room/typeb.png",
-    price: 12000,
-  },
-  {
-    id: 3,
-    roomType: "C",
-    details: "ห้องปรับอากาศสำหรับ 1 คน พร้อมห้องน้ำในตัว",
-    imageSrc: "/room/typec.png",
-    price: 13400,
-  },
-];
 
 // Sample available times
 const availableTimes = [
@@ -96,7 +61,7 @@ const availableTimes = [
 const QueueAppointment = () => {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [roomTypes, setRoomTypes] = useState<RoomType[]>(sampleRoomTypes);
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [selectedRoomType, setSelectedRoomType] = useState<RoomType | null>(
     null
   );
@@ -105,6 +70,9 @@ const QueueAppointment = () => {
   const [isConfirmationDialogOpen, setIsConfirmationDialogOpen] =
     useState<boolean>(false);
   const [appointmentDetails, setAppointmentDetails] = useState({
+    email: "",
+    firstname: "",
+    lastname: "",
     preferredDate: "",
     preferredTime: availableTimes[0],
     specialRequests: "",
@@ -114,44 +82,34 @@ const QueueAppointment = () => {
     Record<number, boolean>
   >({});
 
+  useEffect(() => {
+    apiFetch("/roomtype", {
+      method: "GET",
+      credentials: "include",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        const transformed = data.map((rt: any) => ({
+          id: rt.id,
+          roomType: rt.roomtypeid,
+          name: rt.name,
+          details: rt.description,
+          imageSrc: rt.roomtypeimg || "/room/no-image.png",
+          roomprice: rt.roomprice,
+        }));
+        setRoomTypes(transformed);
+      })
+      .catch((err) => {
+        console.error("Failed to load room types:", err);
+        toast.error("ไม่สามารถโหลดข้อมูลห้องพักได้");
+      });
+  }, []);
+
   const filteredRoomTypes = roomTypes.filter(
     (room) =>
       room.roomType.toLowerCase().includes(searchTerm.toLowerCase()) ||
       room.details.toLowerCase().includes(searchTerm.toLowerCase())
   );
- 
-
-  const checkQueueStatus = async (roomType: string, id: number) => {
-    try {
-      const response = await apiFetch(
-        `/queue/check/${roomType}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        }
-      );
-
-      setIsButtonDisabled((prev) => ({
-        ...prev,
-        [id]: response.status === 409,
-      }));
-    } catch (error) {
-      console.error("Error checking queue status:", error);
-      setIsButtonDisabled((prev) => ({
-        ...prev,
-        [id]: false,
-      }));
-    }
-  };
-
-  useEffect(() => {
-    filteredRoomTypes.forEach((room) => {
-      checkQueueStatus(room.roomType, room.id);
-    });
-  }, [roomTypes]);
 
   const handleBookAppointment = (roomType: RoomType) => {
     setSelectedRoomType(roomType);
@@ -160,11 +118,20 @@ const QueueAppointment = () => {
 
   const validateForm = () => {
     const errors: Record<string, string> = {};
-
+    if (!appointmentDetails.email) {
+      errors.email = "กรุณากรอกอีเมล";
+    } else if (!/\S+@\S+\.\S+/.test(appointmentDetails.email)) {
+      errors.email = "อีเมลไม่ถูกต้อง";
+    }
     if (!appointmentDetails.preferredDate) {
       errors.preferredDate = "กรุณาเลือกวันที่นัดหมาย";
     }
-
+    if (!appointmentDetails.firstname) {
+      errors.firstname = "กรุณากรอกชื่อ";
+    }
+    if (!appointmentDetails.lastname) {
+      errors.lastname = "กรุณากรอกนามสกุล";
+    }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -176,32 +143,30 @@ const QueueAppointment = () => {
     }
   };
 
-  //มาเเก้ตรงนี้
   const handleConfirmAppointment = async () => {
     if (!selectedRoomType) return;
     try {
-      const response = await apiFetch(
-        `/queue/${selectedRoomType.roomType}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            bookingDate: appointmentDetails.preferredDate.toString(),
-            bookingTime: appointmentDetails.preferredTime,
-            description: appointmentDetails.specialRequests,
-          }),
-        }
-      );
+      const response = await apiFetch(`/queue/${selectedRoomType.roomType}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          email: appointmentDetails.email,
+          firstname: appointmentDetails.firstname,
+          lastname: appointmentDetails.lastname,
+          bookingDate: appointmentDetails.preferredDate.toString(),
+          bookingTime: appointmentDetails.preferredTime,
+          description: appointmentDetails.specialRequests,
+        }),
+      });
       if (response.ok) {
         const data = await response.json();
         toast.success(data.message, {
           description: `คุณได้จองคิวดูห้องพักประเภท ${selectedRoomType?.roomType} เรียบร้อยแล้ว`,
           duration: 5000,
         });
-        checkQueueStatus(selectedRoomType.roomType, selectedRoomType.id);
       } else {
         const errorData = await response.json();
         if (response.status === 409) {
@@ -222,11 +187,7 @@ const QueueAppointment = () => {
             duration: 5000,
           });
         }
-        console.error(
-          "Failed to book appointment:",
-          response.status,
-          errorData
-        );
+        console.error("Failed to book appointment:", response.status, errorData);
       }
     } catch (error) {
       console.error("Error booking appointment:", error);
@@ -237,6 +198,9 @@ const QueueAppointment = () => {
     } finally {
       setIsConfirmationDialogOpen(false);
       setAppointmentDetails({
+        email: "",
+        firstname: "",
+        lastname: "",
         preferredDate: "",
         preferredTime: availableTimes[0],
         specialRequests: "",
@@ -254,8 +218,6 @@ const QueueAppointment = () => {
       ...prev,
       [name]: value,
     }));
-
-    // Clear error for this field when user types
     if (formErrors[name]) {
       setFormErrors((prev) => {
         const newErrors = { ...prev };
@@ -273,6 +235,7 @@ const QueueAppointment = () => {
         <main className="h-screen flex-1 overflow-auto">
           <div className="p-6 pt-16 md:pt-6">
             <div className="container mx-auto">
+              {/* search bar */}
               <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
                 <h1 className="text-xl md:text-2xl font-bold text-gray-800 mb-4 md:mb-0">
                   จองคิวเข้าดูห้องพัก
@@ -309,7 +272,7 @@ const QueueAppointment = () => {
                     <CardHeader className="pb-2">
                       <div className="flex justify-between items-center">
                         <CardTitle className="text-xl">
-                          Type {roomType.roomType}
+                          {roomType.roomType} {roomType.name}
                         </CardTitle>
                       </div>
                       <CardDescription className="line-clamp-2 mt-1">
@@ -319,7 +282,7 @@ const QueueAppointment = () => {
                     <CardContent className="pb-2">
                       <div className="flex justify-between items-center">
                         <span className="text-lg font-semibold text-green-600">
-                          ฿{roomType.price.toLocaleString()}/เดือน
+                          ฿{roomType.roomprice.toLocaleString()}/เดือน
                         </span>
                       </div>
                     </CardContent>
@@ -328,7 +291,7 @@ const QueueAppointment = () => {
                         variant="default"
                         className="w-full flex items-center justify-center gap-2"
                         onClick={() => handleBookAppointment(roomType)}
-                        disabled={isButtonDisabled[roomType.id]} // Use the disabled state
+                        disabled={isButtonDisabled[roomType.id]}
                       >
                         <CalendarRange className="h-4 w-4" />
                         จองคิวเข้าดู
@@ -343,10 +306,8 @@ const QueueAppointment = () => {
                   <p className="text-gray-500">ไม่พบข้อมูลประเภทห้องพัก</p>
                 </div>
               )}
-
             </div>
           </div>
-
           <Footer />
         </main>
       </div>
@@ -366,10 +327,69 @@ const QueueAppointment = () => {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-1 gap-3">
+              {/* Email */}
               <div>
-                <Label htmlFor="preferredDate" className="text-right">
-                  วันที่ต้องการเข้าชม <span className="text-red-500">*</span>
-                </Label>
+                <Label htmlFor="email">อีเมล <span className="text-red-500">*</span></Label>
+                <div className="flex items-center">
+                  <Mail className="mr-2 h-4 w-4 text-gray-500" />
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="example@email.com"
+                    value={appointmentDetails.email}
+                    onChange={handleInputChange}
+                    className={formErrors.email ? "border-red-500" : ""}
+                  />
+                </div>
+                {formErrors.email && (
+                  <p className="text-red-500 text-sm mt-1">{formErrors.email}</p>
+                )}
+              </div>
+
+              {/* Firstname */}
+              <div>
+                <Label htmlFor="firstname">ชื่อ <span className="text-red-500">*</span></Label>
+                <div className="flex items-center">
+                  <Contact className="mr-2 h-4 w-4 text-gray-500" />
+                  <Input
+                    id="firstname"
+                    name="firstname"
+                    type="text"
+                    placeholder="กรอกชื่อ"
+                    value={appointmentDetails.firstname}
+                    onChange={handleInputChange}
+                    className={formErrors.firstname ? "border-red-500" : ""}
+                  />
+                </div>
+                {formErrors.firstname && (
+                  <p className="text-red-500 text-sm mt-1">{formErrors.firstname}</p>
+                )}
+              </div>
+
+              {/* Lastname */}
+              <div>
+                <Label htmlFor="lastname">นามสกุล <span className="text-red-500">*</span></Label>
+                <div className="flex items-center">
+                  <FolderPen className="mr-2 h-4 w-4 text-gray-500" />
+                  <Input
+                    id="lastname"
+                    name="lastname"
+                    type="text"
+                    placeholder="กรอกนามสกุล"
+                    value={appointmentDetails.lastname}
+                    onChange={handleInputChange}
+                    className={formErrors.lastname ? "border-red-500" : ""}
+                  />
+                </div>
+                {formErrors.lastname && (
+                  <p className="text-red-500 text-sm mt-1">{formErrors.lastname}</p>
+                )}
+              </div>
+
+              {/* Date */}
+              <div>
+                <Label htmlFor="preferredDate">วันที่ต้องการเข้าชม <span className="text-red-500">*</span></Label>
                 <div className="flex items-center">
                   <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
                   <Input
@@ -383,15 +403,13 @@ const QueueAppointment = () => {
                   />
                 </div>
                 {formErrors.preferredDate && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {formErrors.preferredDate}
-                  </p>
+                  <p className="text-red-500 text-sm mt-1">{formErrors.preferredDate}</p>
                 )}
               </div>
+
+              {/* Time */}
               <div>
-                <Label htmlFor="preferredTime" className="text-right">
-                  เวลาที่ต้องการเข้าชม <span className="text-red-500">*</span>
-                </Label>
+                <Label htmlFor="preferredTime">เวลาที่ต้องการเข้าชม <span className="text-red-500">*</span></Label>
                 <div className="flex items-center">
                   <Clock className="mr-2 h-4 w-4 text-gray-500" />
                   <select
@@ -399,24 +417,22 @@ const QueueAppointment = () => {
                     name="preferredTime"
                     value={appointmentDetails.preferredTime}
                     onChange={handleInputChange}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-10 w-full rounded-md border border-input px-3 py-2"
                   >
                     {availableTimes.map((time) => (
-                      <option key={time} value={time}>
-                        {time}
-                      </option>
+                      <option key={time} value={time}>{time}</option>
                     ))}
                   </select>
                 </div>
               </div>
+
+              {/* Special Requests */}
               <div>
-                <Label htmlFor="specialRequests" className="text-right">
-                  ความต้องการพิเศษ (ถ้ามี)
-                </Label>
+                <Label htmlFor="specialRequests">ความต้องการพิเศษ (ถ้ามี)</Label>
                 <Textarea
                   id="specialRequests"
                   name="specialRequests"
-                  placeholder="โปรดระบุความต้องการพิเศษในการเข้าชม เช่น ต้องการให้มีผู้ดูแลนำเที่ยวชม"
+                  placeholder="โปรดระบุความต้องการพิเศษ"
                   value={appointmentDetails.specialRequests}
                   onChange={handleInputChange}
                   className="min-h-[80px]"
@@ -433,7 +449,7 @@ const QueueAppointment = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog สำหรับแสดงการยืนยันการจอง */}
+      {/* Dialog Confirm */}
       <Dialog
         open={isConfirmationDialogOpen}
         onOpenChange={setIsConfirmationDialogOpen}
@@ -441,90 +457,20 @@ const QueueAppointment = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>ยืนยันการจองคิว</DialogTitle>
-            <DialogDescription>
-              โปรดตรวจสอบข้อมูลการจองของคุณให้ถูกต้อง
-            </DialogDescription>
+            <DialogDescription>โปรดยืนยันข้อมูลก่อนส่งการจอง</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <Card className="border-0 shadow-none">
-              <CardHeader className="p-0 pb-2">
-                <CardTitle className="text-lg">ข้อมูลห้องพัก</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0 space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">ประเภทห้อง:</span>
-                  <span className="font-medium">
-                    {selectedRoomType?.roomType}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">รายละเอียด:</span>
-                  <span className="font-medium text-right max-w-[60%]">
-                    {selectedRoomType?.details}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">ค่าเช่ารายเดือน:</span>
-                  <span className="font-medium">
-                    ฿{selectedRoomType?.price.toLocaleString()}/เดือน
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-none">
-              <CardHeader className="p-0 pb-2">
-                <CardTitle className="text-lg">ข้อมูลการนัดหมาย</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0 space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">วันที่เข้าชม:</span>
-                  <span className="font-medium">
-                    {appointmentDetails.preferredDate
-                      ? new Date(
-                          appointmentDetails.preferredDate
-                        ).toLocaleDateString("th-TH", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })
-                      : "-"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">เวลาเข้าชม:</span>
-                  <span className="font-medium">
-                    {appointmentDetails.preferredTime}
-                  </span>
-                </div>
-                {appointmentDetails.specialRequests && (
-                  <div className="pt-2">
-                    <span className="text-gray-500 block">
-                      ความต้องการพิเศษ:
-                    </span>
-                    <p className="text-sm mt-1 p-2 bg-gray-50 rounded-md">
-                      {appointmentDetails.specialRequests}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <div className="bg-yellow-50 p-3 rounded-md flex items-start gap-2">
-              <AlertTriangle className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-yellow-700">
-                การยืนยันนี้เป็นเพียงการจองคิวเข้าชมห้องพักเท่านั้น
-                ไม่ใช่การจองห้องพัก
-                คุณจะได้รับการติดต่อกลับเพื่อยืนยันเวลานัดหมายอีกครั้ง
-              </p>
-            </div>
+          <div className="space-y-2">
+            <p><strong>อีเมล:</strong> {appointmentDetails.email}</p>
+            <p><strong>ชื่อ-นามสกุล:</strong> {appointmentDetails.firstname} {appointmentDetails.lastname}</p>
+            <p><strong>วันที่เข้าชม:</strong> {appointmentDetails.preferredDate}</p>
+            <p><strong>เวลา:</strong> {appointmentDetails.preferredTime}</p>
+            {appointmentDetails.specialRequests && (
+              <p><strong>ความต้องการพิเศษ:</strong> {appointmentDetails.specialRequests}</p>
+            )}
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsConfirmationDialogOpen(false)}
-            >
-              แก้ไขข้อมูล
+            <Button variant="outline" onClick={() => setIsConfirmationDialogOpen(false)}>
+              แก้ไข
             </Button>
             <Button onClick={handleConfirmAppointment}>ยืนยันการจองคิว</Button>
           </DialogFooter>

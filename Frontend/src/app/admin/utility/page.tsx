@@ -5,10 +5,7 @@ import Sidebar from "@/components/Sidebar";
 import Footer from "@/components/Footer";
 import {
   Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
+  CardContent
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,8 +33,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  DialogTitle
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -125,47 +121,32 @@ const UtilityPage = () => {
   const [RoomLoading,setRoomLoading] = useState(true)
   const [unpaidBills, setUnpaidBills] = useState(0);
 
-  useEffect(() => {
-    setRoom([]);
-    apiFetch("/rooms", {
-      method: "GET",
-      credentials: "include",
-    })
-      .then((jso) => {
-        return jso.json();
-      })
-      .then((da: any) => {
-        setRoom([]);
-        if (da.length == 0) return;
-        const nda = da["rooms"].map((item: any) => {
-          let roomprice = 0;
-          switch (item.roomTypeId) {
-            case "A":
-              roomprice = 8400;
-              break;
-            case "B":
-              roomprice = 12000;
-              break;
-            case "C":
-              roomprice = 13400;
-              break;
-          }
-          return {
-            id: item.id,
-            roomNumber: item.roomName,
-            floor: item.floor,
-            type: item.roomTypeId,
-            status: item.renterID ? "occupied" : "vacent",
-            tenantId: item.renterID,
-            monthlyRent: roomprice,
-          };
+   useEffect(() => {
+    Promise.all([
+      apiFetch("/rooms", { method: "GET", credentials: "include" }).then((res) => res.json()),
+      apiFetch("/roomtype", { method: "GET", credentials: "include" }).then((res) => res.json()),
+    ])
+      .then(([roomsData, roomTypes]) => {
+        const typeMap: Record<string, number> = {};
+        roomTypes.forEach((rt: any) => {
+          typeMap[rt.roomtypeid] = rt.roomprice;
         });
+
+        const nda = roomsData.rooms.map((item: any) => ({
+          id: item.id,
+          roomNumber: item.roomName,
+          floor: item.floor,
+          type: item.roomTypeId,
+          status: item.renterID ? "occupied" : "vacant",
+          tenantId: item.renterID,
+          monthlyRent: typeMap[item.roomTypeId] || 0,
+        }));
         setRoom(nda);
-        setRoomLoading(false)
-      }).then(()=> {
+        setRoomLoading(false);
       })
-      
+      .catch(console.error);
   }, []);
+
   useEffect(() => {
     if (RoomLoading) return
     apiFetch("/bills", {
@@ -431,7 +412,7 @@ const UtilityPage = () => {
       id: Math.max(...utilityData.map((item) => item.id), 0) + 1,
       electric: Number(newUtility.electric),
       water: Number(newUtility.water),
-      roomFee: 8000,
+      roomFee: newUtility.roomFee,
     };
 
     setUtilityData([newItem, ...utilityData]);
@@ -502,7 +483,7 @@ const UtilityPage = () => {
               {/* Header and Actions */}
               <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
                 <h1 className="text-xl md:text-2xl font-bold text-gray-800 mb-4 md:mb-0">
-                  ติดตามค่าสาธาณูประโภค
+                  ติดตามค่าสาธารณูปโภค
                 </h1>
                 <div className="flex flex-col md:flex-row gap-3">
                   <div className="relative w-full md:w-64">
@@ -976,7 +957,7 @@ const UtilityPage = () => {
                 </div>
               ) : (
                 <p className="text-sm text-gray-500 italic">
-                  ไม่มีค่าบรืการเพิ่ม
+                  ไม่มีค่าบริการเพิ่ม
                 </p>
               )}
 

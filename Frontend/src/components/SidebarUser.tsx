@@ -10,7 +10,6 @@ import {
   CreditCard,
   Users2,
   LogOut,
-  HelpCircle,
   Menu,
   PhoneCall,
   Package
@@ -148,14 +147,6 @@ const SidebarUser = ({ className }: SidebarProps) => {
           >
             <LogOut className="mr-2 h-6 w-6 md:h-8 md:w-8" />
             ออกจากระบบ
-          </Button>
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-[18px] py-6 transition-colors duration-200"
-            onClick={() => handleNavigation('/help')}
-          >
-            <HelpCircle className="mr-2 h-6 w-6 md:h-8 md:w-8" />
-            ช่วยเหลือ & สนับสนุน
           </Button>
         </div>
       </div>
