@@ -3,6 +3,7 @@ const router = express.Router();
 const { db } = require('../db');
 const { verifyToken } = require('../middleware/auth.middleware');
 const { createUser } = require('./auth');
+const config = require('../config');
 
 router.get("/", verifyToken, (req, res, next) => {
   if (req.user.role !== "admin") {
@@ -110,7 +111,7 @@ router.post("/", verifyToken, async (req, res, next) => {
       );
     });
 
-    const registerResponse = await createUser(`room_${newRoomId}`, "Cisco123!");
+    const registerResponse = await createUser(`room_${newRoomId}`, config.user.defaultPassword);
 
     await new Promise((resolve, reject) => {
       db.query(

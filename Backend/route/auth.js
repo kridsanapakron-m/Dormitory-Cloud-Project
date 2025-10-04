@@ -58,7 +58,7 @@ const createUser = (username, password) => {
   });
 };
 
-const resetUserPassword = (userId, newPassword = "Cisco123!") => {
+const resetUserPassword = (userId, newPassword = config.user.defaultPassword) => {
   return new Promise((resolve, reject) => {
     if (!userId) {
       return reject(new Error("กรุณาระบุ userId"));
