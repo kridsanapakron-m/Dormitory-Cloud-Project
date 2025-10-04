@@ -160,13 +160,14 @@ const RoomManagementPage = () => {
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     if (editFormData) {
-      const updatedValue = name === "floor" ? parseInt(value, 10) : value;
+      const updatedValue =
+        name === "floor"
+          ? value === "" ? "" : parseInt(value, 10) // ถ้าเป็น "" ให้เก็บเป็น string ว่าง
+          : value;
       setEditFormData({
         ...editFormData,
         [name]: updatedValue,
@@ -562,8 +563,8 @@ const RoomManagementPage = () => {
                       />
                       <Badge
                         className={`absolute top-2 right-2 ${room.occupied
-                            ? "bg-red-100 text-red-800 border-red-200"
-                            : "bg-green-100 text-green-800 border-green-200"
+                          ? "bg-red-100 text-red-800 border-red-200"
+                          : "bg-green-100 text-green-800 border-green-200"
                           }`}
                       >
                         {room.occupied ? "ไม่ว่าง" : "ว่าง"}

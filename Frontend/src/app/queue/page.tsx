@@ -16,6 +16,7 @@ import {
   Mail,
   Contact,
   FolderPen,
+  Phone
 } from "lucide-react";
 import {
   Dialog,
@@ -73,6 +74,7 @@ const QueueAppointment = () => {
     email: "",
     firstname: "",
     lastname: "",
+    telephone: "",
     preferredDate: "",
     preferredTime: availableTimes[0],
     specialRequests: "",
@@ -132,6 +134,12 @@ const QueueAppointment = () => {
     if (!appointmentDetails.lastname) {
       errors.lastname = "กรุณากรอกนามสกุล";
     }
+
+    if (!appointmentDetails.telephone) {
+      errors.telephone = "กรุณากรอกเบอร์โทรศัพท์";
+    } else if (!/^[0-9]{9,10}$/.test(appointmentDetails.telephone)) {
+      errors.telephone = "เบอร์โทรไม่ถูกต้อง";
+    }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -156,6 +164,7 @@ const QueueAppointment = () => {
           email: appointmentDetails.email,
           firstname: appointmentDetails.firstname,
           lastname: appointmentDetails.lastname,
+          telephone: appointmentDetails.telephone,
           bookingDate: appointmentDetails.preferredDate.toString(),
           bookingTime: appointmentDetails.preferredTime,
           description: appointmentDetails.specialRequests,
@@ -204,6 +213,7 @@ const QueueAppointment = () => {
         preferredDate: "",
         preferredTime: availableTimes[0],
         specialRequests: "",
+        telephone: ""
       });
     }
   };
@@ -347,6 +357,29 @@ const QueueAppointment = () => {
                 )}
               </div>
 
+              {/* Telephone */}
+              <div>
+                <Label htmlFor="telephone">
+                  เบอร์โทรศัพท์ <span className="text-red-500">*</span>
+                </Label>
+                <div className="flex items-center">
+                  <Phone className="mr-2 h-4 w-4 text-gray-500" />
+                  <Input
+                    id="telephone"
+                    name="telephone"
+                    type="text"
+                    placeholder="กรอกเบอร์โทรศัพท์"
+                    value={appointmentDetails.telephone}
+                    onChange={handleInputChange}
+                    className={formErrors.telephone ? "border-red-500" : ""}
+                  />
+                </div>
+                {formErrors.telephone && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {formErrors.telephone}
+                  </p>
+                )}
+              </div>
               {/* Firstname */}
               <div>
                 <Label htmlFor="firstname">ชื่อ <span className="text-red-500">*</span></Label>
@@ -461,6 +494,7 @@ const QueueAppointment = () => {
           </DialogHeader>
           <div className="space-y-2">
             <p><strong>อีเมล:</strong> {appointmentDetails.email}</p>
+            <p><strong>เบอร์โทร:</strong> {appointmentDetails.telephone}</p>
             <p><strong>ชื่อ-นามสกุล:</strong> {appointmentDetails.firstname} {appointmentDetails.lastname}</p>
             <p><strong>วันที่เข้าชม:</strong> {appointmentDetails.preferredDate}</p>
             <p><strong>เวลา:</strong> {appointmentDetails.preferredTime}</p>

@@ -348,7 +348,7 @@ db.query(
               }
 
               db.query(
-                `DELETE FROM percel WHERE roomName = ?`,
+                `DELETE FROM parcel WHERE roomName = ?`,
                 [roomName],
                 function (error, result) {
                   if (error) {

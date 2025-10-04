@@ -167,7 +167,7 @@ const TenantsPage = () => {
     const room = rooms.find((r) => r.id === selectedRoomId);
     if (!room) return;
     try {
-      await fetchData(`/rooms/${room.id}`, { method: "DELETE" });
+      await fetchData(`/rooms/${room.id}/removetenant`, { method: "PUT" });
       setRooms((prevRooms) =>
         prevRooms.map((r) =>
           r.id === room.id ? { ...r, renterID: null, available: 0 } : r

@@ -27,6 +27,7 @@ import {
   Home,
   Phone,
   X,
+  Check,
   ChevronLeft,
   ChevronRight,
   Search,
@@ -56,6 +57,13 @@ const AdminQueue = () => {
   const [queueList, setQueueList] = useState<QueueItem[]>([]);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedQueueItem, setSelectedQueueItem] = useState<number>(0);
+
+  // สำหรับ approve queue
+  const [isApproveDialogOpen, setIsApproveDialogOpen] = useState(false);
+  const [vacantRooms, setVacantRooms] = useState<{ id: number; roomName: string }[]>([]);
+  const [selectedRoom, setSelectedRoom] = useState<number | null>(null);
+  const [selectedQueueForApprove, setSelectedQueueForApprove] = useState<QueueItem | null>(null);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -157,6 +165,69 @@ const AdminQueue = () => {
     }
   };
 
+  // ---------------- Approve Queue -----------------
+  const handleApproveClick = async (queue: QueueItem) => {
+    setSelectedQueueForApprove(queue);
+    try {
+      const res = await apiFetch(`/queue/availableroom/${queue.roomTypeId}`, {
+        method: "GET",
+        credentials: "include",
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setVacantRooms(data);
+        setSelectedRoom(data.length > 0 ? data[0].id : null);
+        setIsApproveDialogOpen(true);
+      } else {
+        toast.error("โหลดห้องว่างไม่สำเร็จ");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้");
+    }
+  };
+
+  const handleConfirmApprove = async () => {
+    if (!selectedQueueForApprove || !selectedRoom) {
+      toast.error("กรุณาเลือกห้องที่จะจัดให้");
+      return;
+    }
+
+    try {
+      const res = await apiFetch(`/rooms/${selectedRoom}/assign`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          email: selectedQueueForApprove.email,
+        }),
+      });
+
+      console.log(selectedQueueForApprove.email)
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "รับเข้าพักไม่สำเร็จ");
+      }
+
+      await apiFetch(`/queue/del/${selectedQueueForApprove.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      setQueueList((prev) =>
+        prev.filter((q) => q.id !== selectedQueueForApprove.id)
+      );
+
+      toast.success("รับเข้าพักสำเร็จ");
+    } catch (error) {
+      console.error(error);
+      toast.error("เกิดข้อผิดพลาดในการรับเข้าพัก");
+    } finally {
+      setIsApproveDialogOpen(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col overflow-auto">
       <div className="flex flex-1">
@@ -193,7 +264,7 @@ const AdminQueue = () => {
 
               <div className="space-y-4">
                 {currentItems.map((item) => (
-                  <Card key={item.id}>
+                  <Card key={`${item.id}-${item.queueDate}`}>
                     <CardHeader>
                       <CardTitle>
                         {item.firstname} {item.lastname}
@@ -222,6 +293,10 @@ const AdminQueue = () => {
                         <span className="text-sm">อีเมล: {item.email}</span>
                       </div>
                       <div className="flex items-center gap-2">
+                        <Phone size={16} className="text-gray-500" />
+                        <span className="text-sm">เบอร์โทร: {item.telephone}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
                         <User size={16} className="text-gray-500" />
                         <span className="text-sm">เวลา: {item.bookingTime}</span>
                       </div>
@@ -235,6 +310,13 @@ const AdminQueue = () => {
                       )}
                     </CardContent>
                     <CardFooter className="flex justify-end gap-3 border-t pt-4">
+                      <Button
+                        variant="success"
+                        onClick={() => handleApproveClick(item)}
+                      >
+                        <Check className="mr-2 h-4 w-4" />
+                        รับเข้าพัก
+                      </Button>
                       <Button
                         variant="destructive"
                         onClick={() => handleDeleteClick(item.id)}
@@ -262,7 +344,7 @@ const AdminQueue = () => {
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map(
                       (pageNumber) => (
                         <Button
-                          key={pageNumber}
+                          key={`page-${pageNumber}`}
                           variant={
                             currentPage === pageNumber ? "default" : "outline"
                           }
@@ -308,6 +390,46 @@ const AdminQueue = () => {
               className="bg-red-500 hover:bg-red-600 text-white"
             >
               ลบ
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog รับเข้าพัก */}
+      <AlertDialog open={isApproveDialogOpen} onOpenChange={setIsApproveDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>รับเข้าพัก</AlertDialogTitle>
+            <AlertDialogDescription>
+              เลือกห้องที่จะจัดให้ {selectedQueueForApprove?.firstname}{" "}
+              {selectedQueueForApprove?.lastname}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {vacantRooms.length > 0 ? (
+            <select
+              value={selectedRoom ?? ""}
+              onChange={(e) => setSelectedRoom(Number(e.target.value))}
+              className="w-full border rounded-md p-2 my-3"
+            >
+              {vacantRooms.map((room) => (
+                <option key={room.id} value={room.id}>
+                  {room.roomName}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <p className="text-red-500 text-sm my-3">ไม่มีห้องว่าง</p>
+          )}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmApprove}
+              className="bg-green-500 hover:bg-green-600 text-white"
+              disabled={!selectedRoom}
+            >
+              ยืนยัน
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

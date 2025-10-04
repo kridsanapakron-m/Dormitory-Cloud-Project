@@ -107,6 +107,7 @@ router.get("/", verifyToken, (req, res, next) => {
 
   const selectQuery = `
   SELECT
+id,
 roomTypeId,
 queueDate,
 description,
