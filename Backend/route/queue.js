@@ -209,4 +209,20 @@ router.get("/roomtypes", (req, res, next) => {
   });
 });
 
+router.get("/availableroom/:roomTypeId", (req, res, next) => {
+  const { roomTypeId } = req.params;
+  const selectQuery = `
+    SELECT id, roomName
+    FROM room
+    WHERE room.roomTypeId = ? AND available = 0;
+  `;
+
+  db.query(selectQuery, [roomTypeId], (error, availableRooms) => {
+    if (error) {
+      return next(error);
+    }
+    return res.status(200).json(availableRooms);
+  });
+});
+
 module.exports = router;
