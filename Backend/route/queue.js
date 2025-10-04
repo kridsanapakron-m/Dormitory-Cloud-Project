@@ -5,7 +5,7 @@ const { verifyToken } = require('../middleware/auth.middleware');
 
 router.post("/:roomTypeId", (req, res, next) => {
   const { roomTypeId } = req.params;
-  const { email, firstname, lastname, description, bookingDate, bookingTime } = req.body;
+  const { email, firstname, lastname, description, bookingDate, bookingTime, telephone } = req.body;
   const queueDate = new Date();
 
   if (!email || !firstname || !lastname) {
@@ -58,15 +58,15 @@ router.post("/:roomTypeId", (req, res, next) => {
                     return res.status(409).json({ message: "ไม่สามารถจองคิวได้" });
                   }
 
-                  const insertQueue = `INSERT INTO Queue (email, firstname, lastname, roomTypeId, queueDate, description, bookingDate, bookingTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?);`;
+                  const insertQueue = `INSERT INTO Queue (email, firstname, lastname, roomTypeId, queueDate, description, bookingDate, bookingTime, telephone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`;
                   db.query(
                     insertQueue,
-                    [email, firstname, lastname, roomTypeId, queueDate, description, bookingDate, bookingTime],
+                    [email, firstname, lastname, roomTypeId, queueDate, description, bookingDate, bookingTime, telephone],
                     function (error, result) {
                       if (error) {
                         return next(error);
                       }
-                      res.status(201).json({ roomId: result.insertId });
+                      res.status(201).json({ queueId: result.insertId });
                     }
                   );
                 }
@@ -107,20 +107,16 @@ router.get("/", verifyToken, (req, res, next) => {
 
   const selectQuery = `
   SELECT
-      q.id,
-      q.userId,
-      q.roomTypeId,
-      q.queueDate,
-      q.description,
-      q.bookingDate,
-      q.bookingTime,
-      u.firstname,
-      u.lastname,
-      u.email,
-      u.telephone
-  FROM Queue q
-  JOIN users u ON q.userId = u.id
-  ORDER BY q.queueDate
+roomTypeId,
+queueDate,
+description,
+bookingDate,
+bookingTime,
+email,
+firstname,
+lastname,
+telephone
+  FROM Queue 
 `;
   db.query(selectQuery, (error, queueEntries) => {
     if (error) {
