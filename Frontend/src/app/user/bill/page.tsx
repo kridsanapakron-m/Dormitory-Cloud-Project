@@ -49,7 +49,7 @@ type Transaction = {
   forMonth: string;
   totalAmount: number;
   receiptUrl?: string;
-  status: "pending" | "paid";
+  status: "pending" | "paid" | string;
   paymentDate?: Date;
   breakdown?: {
     rent: number;
@@ -63,10 +63,12 @@ type Transaction = {
 
 
 type PaymentStep = "details" | "payment" | "confirmation";
+
 interface QrPayment {
   base64url: string;
   promptpayid: string;
 }
+
 const BillPage = () => {
   const router = useRouter();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -192,63 +194,63 @@ const BillPage = () => {
     }
   };
 
-  // Handle payment confirmation
-  const handleConfirmPayment = () => {
-    if (selectedTransaction) {
-      console.log(selectedTransaction)
-      if (paymentFile) {
-        const formdata = new FormData();
-        formdata.append(
-          "TransactionImg",
-          new Blob([paymentFile], { type: paymentFile.type })
-        );
-        apiFetch(`/bills/${selectedTransaction.id}/paying`, {
-          method: "PUT",
-          body: formdata,
-          credentials: "include",
-        })
-          .then((val) => {
-            if (!val.ok) {
-              console.error("Not okay");
-            }
-            console.log(new Date())
-            const updatedTransactions = transactions.map((transaction) =>
-              transaction.id === selectedTransaction.id
-                ? ({
-                    ...transaction,
-                    status: "paid",
-                    paidDate: new Date(),
-                    receiptUrl: paymentFile
-                      ? URL.createObjectURL(paymentFile)
-                      : undefined,
-                  } as Transaction)
-                : transaction
-            );
-      
-            setTransactions(updatedTransactions);
-            toast.success("การชำระเงินสำเร็จ", {
-              description: `ชำระเงินค่าเช่าเดือน ${selectedTransaction.forMonth} เรียบร้อยแล้ว`,
-            });
-      
-            // Reset payment state
-            setPaymentFile(null);
-            setPaymentStep("confirmation");
-      
-            // Update the selected transaction for the UI
-            const updatedTransaction = updatedTransactions.find(
-              (t) => t.id === selectedTransaction.id
-            );
-            if (updatedTransaction) {
-              setSelectedTransaction(updatedTransaction);
-            }
-          })
-          .catch((ex) => {
-            console.error(ex);
-          });
-      }
-      // Update the transaction status
+  // helper function แปลงไฟล์เป็น base64
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file); // จะได้ string เช่น "data:image/png;base64,iVBORw0..."
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+};
+
+const handleConfirmPayment = async () => {
+  if (!selectedTransaction || !paymentFile) return;
+
+  try {
+    const base64String = await fileToBase64(paymentFile);
+
+    const response = await apiFetch(`/bills/${selectedTransaction.id}/paying`, {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        transactionImgBase64: base64String,
+      }),
+    });
+
+    if (!response.ok) {
+      toast.error("อัพโหลดไม่สำเร็จ");
+      return;
     }
-  };
+
+    const updatedTransactions = transactions.map((transaction) =>
+      transaction.id === selectedTransaction.id
+        ? {
+            ...transaction,
+            status: "paid",
+            paidDate: new Date(),
+            receiptUrl: base64String,
+          }
+        : transaction
+    );
+
+    setTransactions(updatedTransactions);
+    toast.success("การชำระเงินสำเร็จ", {
+      description: `ชำระเงินค่าเช่าเดือน ${selectedTransaction.forMonth} เรียบร้อยแล้ว`,
+    });
+
+    setPaymentFile(null);
+    setPaymentStep("confirmation");
+    setSelectedTransaction(
+      updatedTransactions.find((t) => t.id === selectedTransaction.id) || null
+    );
+  } catch (err) {
+    console.error(err);
+    toast.error("เกิดข้อผิดพลาดในการอัพโหลดสลิป");
+  }
+};
+
 
 
   const handleDownloadReceipt = async (transaction: Transaction) => {

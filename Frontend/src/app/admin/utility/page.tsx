@@ -118,10 +118,10 @@ const UtilityPage = () => {
   const [isLoading, setLoading] = useState(true)
   const [previewItem, setPreviewItem] = useState<number | null>(null);
   const [isReceiptDialogOpen, setIsReceiptDialogOpen] = useState(false);
-  const [RoomLoading,setRoomLoading] = useState(true)
+  const [RoomLoading, setRoomLoading] = useState(true)
   const [unpaidBills, setUnpaidBills] = useState(0);
 
-   useEffect(() => {
+  useEffect(() => {
     Promise.all([
       apiFetch("/rooms", { method: "GET", credentials: "include" }).then((res) => res.json()),
       apiFetch("/roomtype", { method: "GET", credentials: "include" }).then((res) => res.json()),
@@ -202,8 +202,7 @@ const UtilityPage = () => {
         }));
 
         apiFetch(
-          `/tasks?roomid=${
-            rooms!.find((i) => i.roomNumber == newUtility.roomNumber)?.id
+          `/tasks?roomid=${rooms!.find((i) => i.roomNumber == newUtility.roomNumber)?.id
           }&month=${newUtility.month}`,
           { method: "GET", credentials: "include" }
         )
@@ -235,7 +234,7 @@ const UtilityPage = () => {
       }
     }
 
-  }, [RoomLoading,newUtility.roomNumber, newUtility.month, rooms]);
+  }, [RoomLoading, newUtility.roomNumber, newUtility.month, rooms]);
 
   useEffect(() => {
     apiFetch('/main/bill/', {
@@ -243,9 +242,9 @@ const UtilityPage = () => {
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
     })
-    .then((res) => res.json())
-    .then((data) => setUnpaidBills(data.unpaidBills))
-    .catch(console.error);
+      .then((res) => res.json())
+      .then((data) => setUnpaidBills(data.unpaidBills))
+      .catch(console.error);
   }, []);
 
   const handleConfirmPayment = (id: number) => {
@@ -402,9 +401,9 @@ const UtilityPage = () => {
     }).catch((ex) => {
       console.error(ex);
     }
-  );
-  
- 
+    );
+
+
 
     // Add new utility record
     const newItem = {
@@ -437,7 +436,7 @@ const UtilityPage = () => {
   const currentMonthData = utilityData.filter(
     (item) => item.month === currentMonth
   );
-  
+
   let oldmonth = "";
   if (isLoading) {
     return (
@@ -447,16 +446,16 @@ const UtilityPage = () => {
     );
   }
 
-  
+
   const formatThaiDate = (date: Date): string => {
     const thaiMonths = [
       'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
       'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
     ];
-    
+
     const monthIndex = date.getMonth();
     const day = date.getDate();
-    
+
     return `${day} ${thaiMonths[monthIndex]}`;
   };
 
@@ -465,11 +464,11 @@ const UtilityPage = () => {
       'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
       'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
     ];
-    
+
     const monthIndex = date.getMonth();
     const day = date.getDate();
     const year = date.getFullYear() + 543;
-    
+
     return `${day} ${thaiMonths[monthIndex]} ${year}`;
   };
 
@@ -531,7 +530,7 @@ const UtilityPage = () => {
                       <X className="h-5 w-5 text-amber-600" />
                     </div>
                   </CardContent>
-                </Card>       
+                </Card>
               </div>
 
               {/* Filters */}
@@ -563,8 +562,8 @@ const UtilityPage = () => {
                         {filterStatus === "all"
                           ? "ทุกสถานะ"
                           : filterStatus === "paid"
-                          ? "ชำระแล้ว"
-                          : "ยังไม่ได้ชำระ"}
+                            ? "ชำระแล้ว"
+                            : "ยังไม่ได้ชำระ"}
                       </span>
                     </div>
                   </SelectTrigger>
@@ -1047,7 +1046,7 @@ const UtilityPage = () => {
                     ยอดทั้งหมด: ฿
                     {(
                       Number(newUtility.electric) +
-                      Number(newUtility.water) + Number(newUtility.roomFee) + 
+                      Number(newUtility.water) + Number(newUtility.roomFee) +
                       newUtility.additionalFees.reduce(
                         (sum, fee) => sum + Number(fee.amount),
                         0
@@ -1079,14 +1078,14 @@ const UtilityPage = () => {
           <DialogHeader>
             <DialogTitle>
               {previewItem &&
-              utilityData.find((item) => item.id === previewItem)?.status ===
+                utilityData.find((item) => item.id === previewItem)?.status ===
                 "paid"
                 ? "ดูใบเสร็จ"
                 : "ตรวจสอบใบเสร็จ"}
             </DialogTitle>
             <DialogDescription>
               {previewItem &&
-              utilityData.find((item) => item.id === previewItem)?.status ===
+                utilityData.find((item) => item.id === previewItem)?.status ===
                 "paid"
                 ? "ใบเสร็จที่ตรวจสอบแล้ว"
                 : "คอนเฟิร์มการจ่ายหลังตรวจสอบเสร็จ"}
@@ -1100,11 +1099,10 @@ const UtilityPage = () => {
                     (item) => item.id === previewItem
                   )?.imageFile;
                   return imageFile ? (
-                    <Image
+                    <img
                       src={imageFile}
                       alt="ใบเสร็จ"
-                      fill
-                      className="object-contain"
+                      className="object-contain w-full h-full"
                     />
                   ) : (
                     <div className="w-full h-full bg-gray-200 flex items-center justify-center">
@@ -1125,7 +1123,7 @@ const UtilityPage = () => {
 
             {previewItem &&
               utilityData.find((item) => item.id === previewItem)?.status ===
-                "unpaid" && (
+              "unpaid" && (
                 <Button
                   onClick={() => {
                     if (previewItem) {

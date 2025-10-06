@@ -87,8 +87,9 @@ router.get("/", verifyToken, (req, res) => {
 
     result.forEach((a) => {
       if (a.transactionimg) {
-        a.transactionimg =
-          "data:image/jpeg;base64," + a.transactionimg.toString("base64");
+        if (!a.transactionimg.startsWith("data:")) {
+          a.transactionimg = "data:image/jpeg;base64," + a.transactionimg;
+        }
       }
     });
 
@@ -99,9 +100,9 @@ router.get("/", verifyToken, (req, res) => {
 router.get("/paid", verifyToken, (req, res) => {
   db.query(
     "SELECT u.id,b.* FROM bill b JOIN users u ON (u.RoomID = b.RoomID) WHERE billstatus!=0" +
-      (req.query.roomid && req.user.role == "admin"
-        ? ` AND RoomID=${req.query.roomid}`
-        : req.user.role == "user"
+    (req.query.roomid && req.user.role == "admin"
+      ? ` AND RoomID=${req.query.roomid}`
+      : req.user.role == "user"
         ? ` AND id=${req.user.id}`
         : ""),
     (ex, result) => {
@@ -118,31 +119,30 @@ router.get("/paid", verifyToken, (req, res) => {
   );
 });
 
-router.put(
-  "/:billid/paying",
-  verifyToken,
-  upload.single("TransactionImg"),
-  (req, res) => {
-    const { buffer } = req.file;
-    db.query(
-      `UPDATE bill SET transactionimg=?, billstatus=1 WHERE billid=${req.params["billid"]}`,
-      [buffer],
-      (ex, result) => {
-        if (ex) {
-          console.error("Got Error:", ex);
-          res.status(500).json({ message: "Internet Server Error" });
-        }
-        if (result.affectedRows == 0)
-          res.status(404).json({
-            message: `Bill ${req.params["billid"]} not found or it's already been set.`,
-          });
-        res.status(200).json({
-          message: `Bill ${req.params["billid"]} has been set to paid.`,
-        });
-      }
-    );
+router.put("/:billid/paying", verifyToken, (req, res) => {
+  const { transactionImgBase64 } = req.body;
+
+  if (!transactionImgBase64) {
+    return res.status(400).json({ message: "No base64 image provided" });
   }
-);
+
+  db.query(
+    `UPDATE bill SET transactionimg=?, billstatus=1 WHERE billid=?`,
+    [transactionImgBase64, req.params.billid],
+    (ex, result) => {
+      if (ex) {
+        console.error(ex);
+        return res.status(500).json({ message: "Internal Server Error" });
+      }
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: `Bill ${req.params.billid} not found` });
+      }
+      return res.status(200).json({
+        message: `Bill ${req.params.billid} has been set to paid (base64 string stored).`,
+      });
+    }
+  );
+});
 
 router.put("/:billid/confirmPayment", verifyToken, (req, res) => {
   if (req.user.role != "admin")
