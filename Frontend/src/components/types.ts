@@ -36,6 +36,7 @@ export type DormType = {
   roomtypeimg: string;
   description: string;
   roomprice: number;
+  name: string;
 };
 
 //end of landing page

@@ -26,11 +26,7 @@ const Signin = () => {
           username: formData.get('userIdentifier') as string,
           password: formData.get('password') as string,
         };
-  
-        if (userData.password.length < 8) {
-          throw new Error('รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร');
-        }
-  
+    
         const response = await apiFetch('/auth/login', {
           method: 'POST',
           headers: {
@@ -109,7 +105,6 @@ const Signin = () => {
                   type={showPassword ? "text" : "password"}
                   placeholder="Password / รหัสผ่าน"
                   name="password"
-                  minLength={8}
                   className="w-full p-3 border border-gray-300 rounded-lg bg-white pr-10"
                   required
                 />

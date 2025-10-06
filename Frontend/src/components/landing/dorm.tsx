@@ -15,7 +15,7 @@ interface DormCardProps {
 }
 
 export const DormCard: React.FC<DormCardProps> = ({ dorm }) => {
-  const { roomtypeid, description, roomtypeimg, roomprice } = dorm;
+  const { roomtypeid, description, roomtypeimg, roomprice, name } = dorm;
   
   return (
     <div className="bg-white border rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
@@ -29,7 +29,7 @@ export const DormCard: React.FC<DormCardProps> = ({ dorm }) => {
         />
       </div>
       <div className="p-6">
-        <h3 className="text-xl font-semibold mb-2">{roomtypeid}</h3>
+        <h3 className="text-xl font-semibold mb-2">{roomtypeid} {name}</h3>
         <p className="text-gray-600 mb-4">{description}</p>
         <div className="flex justify-between items-center">
           <span className="text-xl font-semibold text-primary">฿{roomprice.toLocaleString()}/เดือน</span>

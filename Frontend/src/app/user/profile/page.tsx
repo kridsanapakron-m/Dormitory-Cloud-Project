@@ -11,6 +11,9 @@ import {
   Home,
   Save,
   ArrowLeft,
+  Eye,
+  Key,
+  EyeOff,
   Upload,
 } from 'lucide-react';
 import SidebarUser from '@/components/SidebarUser';
@@ -21,6 +24,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { apiFetch } from "@/lib/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from "@/components/ui/dialog";
+
 
 const EditProfilePage = () => {
   const router = useRouter();
@@ -37,7 +48,17 @@ const EditProfilePage = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState("");
-  const [imageFile, setImageFile] = useState<File | null>(null); 
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isConfirmError, setIsConfirmError] = useState(false);
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       setIsLoading(true);
@@ -73,6 +94,14 @@ const EditProfilePage = () => {
     fetchUserProfile();
   }, []);
 
+  useEffect(() => {
+    if (confirmPassword.length > 0) {
+      setIsConfirmError(newPassword !== confirmPassword);
+    } else {
+      setIsConfirmError(false);
+    }
+  }, [newPassword, confirmPassword]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setProfile(prev => ({
@@ -85,23 +114,62 @@ const EditProfilePage = () => {
     const file = e.target.files?.[0];
     if (file) {
       setImageFile(file);
-  
+
       const reader = new FileReader();
       reader.onload = () => {
         const base64String = reader.result as string;
-        setImagePreview(base64String); 
+        setImagePreview(base64String);
         setProfile(prev => ({ ...prev, userimg: base64String }));
       };
-      reader.readAsDataURL(file); 
+      reader.readAsDataURL(file);
     } else {
       setImageFile(null);
     }
   };
 
+
+  const handlePasswordChange = async () => {
+    if (newPassword.length < 8) {
+      toast.error("รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error("รหัสผ่านใหม่ทั้งสองไม่ตรงกัน");
+      return;
+    }
+
+    try {
+      const res = await apiFetch("/auth/change-password", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          oldPassword,
+          newPassword,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        toast.error(err.message || "เปลี่ยนรหัสผ่านไม่สำเร็จ");
+        return;
+      }
+
+      toast.success("เปลี่ยนรหัสผ่านเรียบร้อยแล้ว");
+      setIsPasswordDialogOpen(false);
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      console.error(err);
+      toast.error("เกิดข้อผิดพลาด");
+    }
+  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-  
+
     try {
       const payload = {
         firstname: profile.firstname,
@@ -109,7 +177,7 @@ const EditProfilePage = () => {
         email: profile.email,
         telephone: profile.phone,
         address: profile.address,
-        userImg: profile.userimg || "", 
+        userImg: profile.userimg || "",
       };
       const response = await apiFetch("/auth/edit", {
         method: "PUT",
@@ -121,7 +189,7 @@ const EditProfilePage = () => {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to update profile");
       }
-  
+
       toast.success("อัพเดทข้อมูลผู้ใช้เรียบร้อยแล้ว");
       router.push("/user/main");
     } catch (error) {
@@ -170,18 +238,18 @@ const EditProfilePage = () => {
                   {/* Profile Image */}
                   <div className="flex flex-col items-center mb-6">
                     <div className="relative w-32 h-32 overflow-hidden rounded-full border-4 border-primary/20 mb-4">
-                    {imagePreview ? (
-                      <Image
-                        src={imagePreview}
-                        alt={profile.firstname || "Profile image"}
-                        fill
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                        <span className="text-gray-400">ไม่มีรูปภาพ</span>
-                      </div>
-                    )}
+                      {imagePreview ? (
+                        <Image
+                          src={imagePreview}
+                          alt={profile.firstname || "Profile image"}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                          <span className="text-gray-400">ไม่มีรูปภาพ</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center">
@@ -327,27 +395,37 @@ const EditProfilePage = () => {
                 </CardContent>
               </Card>
 
-              <div className="flex justify-end space-x-4">
+              <div className="flex justify-between items-center">
                 <Button
                   type="button"
-                  variant="outline"
-                  onClick={handleCancel}
+                  onClick={() => setIsPasswordDialogOpen(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg flex items-center gap-2 shadow-md transition-colors"
                 >
-                  ยกเลิก
+                  <Key className="w-4 h-4" />
+                  เปลี่ยนรหัสผ่าน
                 </Button>
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>กำลังบันทึก...</>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" />
-                      บันทึกข้อมูล
-                    </>
-                  )}
-                </Button>
+                <div className="flex space-x-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCancel}
+                  >
+                    ยกเลิก
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>กำลังบันทึก...</>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        บันทึกข้อมูล
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </form>
           </div>
@@ -355,6 +433,100 @@ const EditProfilePage = () => {
       </div>
 
       <Footer />
+      <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>เปลี่ยนรหัสผ่าน</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+
+            {/* Old Password */}
+            <div>
+              <label className="text-sm font-medium block mb-1">รหัสผ่านเก่า</label>
+              <div className="relative">
+                <Input
+                  type={showOldPassword ? "text" : "password"}
+                  value={oldPassword}
+                  onChange={(e) => setOldPassword(e.target.value)}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowOldPassword(!showOldPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                >
+                  {showOldPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            {/* New Password */}
+            <div>
+              <label className="text-sm font-medium block mb-1">รหัสผ่านใหม่</label>
+              <div className="relative">
+                <Input
+                  type={showNewPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                >
+                  {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Confirm Password */}
+            <div>
+              <label className="text-sm font-medium block mb-1">ยืนยันรหัสผ่านใหม่</label>
+              <div className="relative">
+                <Input
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className={`pr-10 ${confirmPassword.length > 0
+                    ? newPassword !== confirmPassword
+                      ? "border-red-500"
+                      : "border-green-500"
+                    : ""
+                    }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+                {confirmPassword.length > 0 && newPassword !== confirmPassword && (
+                  <p className="text-red-500 text-sm mt-1">รหัสผ่านไม่ตรงกัน</p>
+                )}
+                {confirmPassword.length > 0 && newPassword === confirmPassword && (
+                  <p className="text-green-600 text-sm mt-1">รหัสผ่านตรงกันแล้ว ✅</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsPasswordDialogOpen(false)}
+            >
+              ยกเลิก
+            </Button>
+            <Button onClick={handlePasswordChange} disabled={newPassword !== confirmPassword}>
+              <Save className="w-4 h-4 mr-2" /> บันทึก
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
     </div>
   );
 };

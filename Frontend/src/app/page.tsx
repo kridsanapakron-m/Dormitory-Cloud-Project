@@ -342,33 +342,6 @@ export default function HomePage() {
       </div>
 
 
-      <section className="mt-32" ref={ref}>
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-24">
-            <h1 data-aos="fade-up" className="text-3xl md:text-4xl font-semibold">สถิติหอพักของเรา</h1>
-            <p data-aos="fade-up" className="text-lg md:text-xl text-primary">ให้บริการที่ดีเยี่ยม</p>
-          </div>
-          <div data-aos="fade-up"  className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
-          {[
-            { value: 100, label: "ห้องพัก" },
-            { value: 1000, label: "ผู้เช่า" },
-            { value: 24, label: "บริการตลอด", suffix: "/7" },
-            { value: 98, label: "ความพึงพอใจ", suffix: "%" },
-          ].map((stat, index) => (
-            <div key={index}>
-              <h3 className="text-4xl font-bold text-primary">
-                {inView && (
-                  <CountUp start={0} end={stat.value} duration={4} suffix={stat.suffix || ""} />
-                )}
-              </h3>
-              <p className="text-gray-600 pt-2">{stat.label}</p>
-            </div>
-          ))}
-
-          </div>
-        </div>
-      </section>
-
       {dorms && dorms.length > 0 && (
         <section id="dorm-type" className="pt-24 lg:pt-40">
         <div className="container mx-auto px-4 max-w-[1280px]">
