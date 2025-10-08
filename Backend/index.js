@@ -28,6 +28,9 @@ const parcelRouter = require('./route/parcel');
 const landingPageRouter = require('./route/landingpage');
 const roomtypeRouter = require('./route/roomtype');
 
+app.get('/', (req, res) => {
+  res.status(200);
+});
 
 const app = express();
 const port = 3000;
