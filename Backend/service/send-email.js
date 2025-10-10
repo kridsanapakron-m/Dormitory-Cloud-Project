@@ -16,7 +16,7 @@ const transporter = nodemailer.createTransport({
 const sendEmail = async ({ to, subject, text, html }) => {
   try {
     const mailOptions = {
-      from: `"Your Awesome App" <${process.env.EMAIL_USER}>`,
+      from: `"Dormitory Service" <${process.env.EMAIL_USER}>`,
       to,
       subject,
       text,
