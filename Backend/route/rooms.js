@@ -137,7 +137,7 @@ router.post("/", verifyToken, async (req, res, next) => {
       );
     });
 
-    const registerResponse = await createUser(`room_${newRoomId}`, config.user.defaultPassword);
+    const registerResponse = await createUser(`room_${newRoomId}`, config.client.defaultPassword);
 
     await Promise.all([
       new Promise((resolve, reject) => {

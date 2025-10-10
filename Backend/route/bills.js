@@ -122,7 +122,7 @@ router.get("/", verifyToken, (req, res) => {
     result.forEach((a) => {
       if (a.transactionimg) {
         if (!a.transactionimg.startsWith("data:")) {
-          a.transactionimg = "data:image/jpeg;base64," + a.transactionimg;
+          a.transactionimg = a.transactionimg;
         }
       }
     });
