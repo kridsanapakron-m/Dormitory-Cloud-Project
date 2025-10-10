@@ -10,6 +10,8 @@ const qr = require("qrcode");
 const generatePayload = require("promptpay-qr");
 const router = express.Router();
 const { sendEmail } = require("../service/send-email");
+const s3 = require("../service/s3");
+require("dotenv").config();
 
 router.post("/", verifyToken, async (req, res) => {
   if (req.user.role !== "admin") {
@@ -151,29 +153,64 @@ router.get("/paid", verifyToken, (req, res) => {
   );
 });
 
-router.put("/:billid/paying", verifyToken, (req, res) => {
+router.put("/:billid/paying", verifyToken, async (req, res, next) => {
   const { transactionImgBase64 } = req.body;
+  const { billid } = req.params;
 
   if (!transactionImgBase64) {
-    return res.status(400).json({ message: "No base64 image provided" });
+    return res.status(400).json({ message: "กรุณาแนบหลักฐานการชำระเงิน" });
   }
 
-  db.query(
-    `UPDATE bill SET transactionimg=?, billstatus=1 WHERE billid=?`,
-    [transactionImgBase64, req.params.billid],
-    (ex, result) => {
-      if (ex) {
-        console.error(ex);
-        return res.status(500).json({ message: "Internal Server Error" });
-      }
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ message: `Bill ${req.params.billid} not found` });
-      }
-      return res.status(200).json({
-        message: `Bill ${req.params.billid} has been set to paid (base64 string stored).`,
-      });
+
+  if (typeof transactionImgBase64 !== 'string' || !transactionImgBase64.startsWith('data:image')) {
+    return res.status(400).json({ message: "รูปแบบรูปภาพไม่ถูกต้อง (ต้องเป็น Base64)" });
+  }
+
+  try {
+
+    const base64Data = Buffer.from(
+      transactionImgBase64.replace(/^data:image\/\w+;base64,/, ""),
+      "base64"
+    );
+    const type = transactionImgBase64.split(";")[0].split("/")[1];
+    const fileName = `transactions/bill-${billid}-${Date.now()}.${type}`;
+
+    const params = {
+      Bucket: process.env.AWS_S3_BUCKET_NAME,
+      Key: fileName,
+      Body: base64Data,
+      ContentEncoding: "base64",
+      ContentType: `image/${type}`,
+      ACL: "public-read",
+    };
+
+    const uploadResult = await s3.upload(params).promise();
+    const imageUrl = uploadResult.Location;
+
+    const result = await new Promise((resolve, reject) => {
+      db.query(
+        `UPDATE bill SET transactionimg=?, billstatus=1 WHERE billid=?`,
+        [imageUrl, billid],
+        (error, result) => {
+          if (error) return reject(error);
+          resolve(result);
+        }
+      );
+    });
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: `ไม่พบบิล ${billid}` });
     }
-  );
+
+    return res.status(200).json({
+      message: `อัปเดตสถานะบิล ${billid} เป็นชำระแล้วเรียบร้อย`,
+      imageUrl: imageUrl
+    });
+
+  } catch (error) {
+    console.error(error);
+    return next(error);
+  }
 });
 
 router.put("/:billid/confirmPayment", verifyToken, (req, res) => {

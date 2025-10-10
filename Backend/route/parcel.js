@@ -2,21 +2,26 @@ const express = require('express');
 const router = express.Router();
 const { db } = require('../db');
 const { verifyToken } = require('../middleware/auth.middleware');
-
-router.post('/add', verifyToken, (req, res) => {
+const s3 = require("../service/s3");
+require("dotenv").config();
+router.post('/add', verifyToken, async (req, res) => {
     if (req.user.role !== 'admin') {
         return res.status(403).json({ message: 'เฉพาะผู้ดูแลระบบเท่านั้น' });
     }
     const { roomName, IncomingDate, parcel_img } = req.body;
 
+    if (!parcel_img) {
+        return res.status(400).json({ error: 'กรุณาแนบรูปภาพพัสดุ' });
+    }
+
     if (IncomingDate) {
         CleanIncomingDate = IncomingDate.replace('Z', '').split('.')[0].replace('T', ' ');
     }
-
+    
     db.query(
         `SELECT available FROM room WHERE roomName = ?`,
         [roomName],
-        function (error, results) {
+        async function (error, results) {
             if (error) {
                 return res.status(500).json({ error: 'ไม่สามารถตรวจสอบสถานะห้องได้' });
             }
@@ -30,21 +35,48 @@ router.post('/add', verifyToken, (req, res) => {
                 return res.status(400).json({ error: 'ไม่สามารถเพิ่มพัสดุได้ เนื่องจากห้องนี้ไม่มีผู้เช่า' });
             }
             
-            // available = 1 ให้เพิ่มพัสดุได้
-            db.query(
-                `INSERT INTO parcel (roomName, IncomingDate, parcel_img) VALUES (?, ?, ?)`,
-                [roomName, CleanIncomingDate, parcel_img],
-                function (error, result) {
-                    if (error) {
-                        return res.status(500).json({ error: 'ไม่สามารถเพิ่มพัสดุได้'});
+            try {
+                const photoBase64 = parcel_img;
+                const base64Data = Buffer.from(
+                    photoBase64.replace(/^data:image\/\w+;base64,/, ""),
+                    "base64"
+                );
+
+                const type = photoBase64.split(";")[0].split("/")[1];
+                const fileName = `parcels/${roomName}-${Date.now()}.${type}`;
+
+                const params = {
+                    Bucket: process.env.AWS_S3_BUCKET_NAME,
+                    Key: fileName,
+                    Body: base64Data,
+                    ContentEncoding: "base64",
+                    ContentType: `image/${type}`,
+                    ACL: "public-read",
+                };
+
+                const uploadResult = await s3.upload(params).promise();
+                const imageUrl = uploadResult.Location; 
+
+                db.query(
+                    `INSERT INTO parcel (roomName, IncomingDate, parcel_img) VALUES (?, ?, ?)`,
+                    [roomName, CleanIncomingDate, imageUrl],
+                    function (error, result) {
+                        if (error) {
+                            console.error("Database Insert Error:", error);
+                            return res.status(500).json({ error: 'ไม่สามารถเพิ่มพัสดุได้'});
+                        }
+                        res.status(201).json({ message: 'เพิ่มพัสดุสำเร็จ', id: result.insertId, imageUrl: imageUrl });
                     }
-                    res.status(201).json({ message: 'เพิ่มพัสดุสำเร็จ', id: result.insertId });
-                }
-            );
+                );
+
+            } catch (s3Error) {
+                console.error("Error uploading to S3:", s3Error);
+                return res.status(500).json({ error: 'ไม่สามารถอัปโหลดรูปภาพไปยัง S3 ได้' });
+            }
         }
     );
-});
 
+});
 router.get('/all', verifyToken, (req, res) => {
     if (req.user.role !== 'admin') {
         return res.status(403).json({ message: 'เฉพาะผู้ดูแลระบบเท่านั้น' });

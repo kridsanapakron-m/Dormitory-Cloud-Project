@@ -5,6 +5,8 @@ const { verifyToken } = require('../middleware/auth.middleware');
 const { createUser } = require('./auth');
 const config = require('../config');
 const { sendEmail } = require('../service/send-email');
+const s3 = require("../service/s3");
+require("dotenv").config();
 router.get("/", verifyToken, (req, res, next) => {
   if (req.user.role !== "admin") {
     return res
@@ -66,6 +68,7 @@ router.post("/", verifyToken, async (req, res, next) => {
   }
 
   const { roomName, description, roomTypeId, floor, roomImg } = req.body;
+
   if (!roomName || typeof roomName !== "string" || roomName.length < 3) {
     return res.status(400).json({ message: "ข้อมูล ชื่อห้อง ไม่ถูกต้อง" });
   }
@@ -81,6 +84,10 @@ router.post("/", verifyToken, async (req, res, next) => {
   }
   if (!floor) {
     return res.status(400).json({ message: "ข้อมูล ชั้น ไม่ถูกต้อง" });
+  }
+
+  if (!roomImg) {
+    return res.status(400).json({ message: "กรุณาแนบรูปภาพห้อง" });
   }
 
   try {
@@ -99,11 +106,30 @@ router.post("/", verifyToken, async (req, res, next) => {
       return res.status(409).json({ message: "ชื่อห้องนี้มีในระบบแล้ว" });
     }
 
+    const base64Data = Buffer.from(
+      roomImg.replace(/^data:image\/\w+;base64,/, ""),
+      "base64"
+    );
+    const type = roomImg.split(";")[0].split("/")[1];
+    const fileName = `rooms/${roomName}-${Date.now()}.${type}`;
+
+    const params = {
+      Bucket: process.env.AWS_S3_BUCKET_NAME,
+      Key: fileName,
+      Body: base64Data,
+      ContentEncoding: "base64",
+      ContentType: `image/${type}`,
+      ACL: "public-read",
+    };
+
+    const uploadResult = await s3.upload(params).promise();
+    const imageUrl = uploadResult.Location;
+
     const newRoomId = await new Promise((resolve, reject) => {
       const sql = `INSERT INTO room (roomName, description, roomTypeId, floor, renterID, roomImg) VALUES (?, ?, ?, ?, ?, ?)`;
       db.query(
         sql,
-        [roomName, description, roomTypeId, floor, null, roomImg],
+        [roomName, description, roomTypeId, floor, null, imageUrl],
         function (error, result) {
           if (error) return reject(error);
           resolve(result.insertId);
@@ -113,28 +139,33 @@ router.post("/", verifyToken, async (req, res, next) => {
 
     const registerResponse = await createUser(`room_${newRoomId}`, config.user.defaultPassword);
 
-    await new Promise((resolve, reject) => {
-      db.query(
-        `UPDATE room SET renterID = ? WHERE id = ?`,
-        [registerResponse.userId, newRoomId],
-        function (error, result) {
-          if (error) return reject(error);
-          resolve();
-        }
-      );
-      db.query(
-        `UPDATE users SET RoomID = ? WHERE id = ?`,
-        [newRoomId, registerResponse.userId],
-        function (error, result) {
-          if (error) return reject(error);
-          resolve();
-        }
-      );
-    });
+    await Promise.all([
+      new Promise((resolve, reject) => {
+        db.query(
+          `UPDATE room SET renterID = ? WHERE id = ?`,
+          [registerResponse.userId, newRoomId],
+          function (error, result) {
+            if (error) return reject(error);
+            resolve(result);
+          }
+        );
+      }),
+      new Promise((resolve, reject) => {
+        db.query(
+          `UPDATE users SET RoomID = ? WHERE id = ?`,
+          [newRoomId, registerResponse.userId],
+          function (error, result) {
+            if (error) return reject(error);
+            resolve(result);
+          }
+        );
+      })
+    ]);
 
     res.status(201).json({
       roomId: newRoomId,
       user: registerResponse,
+      imageUrl: imageUrl
     });
   } catch (error) {
     next(error);
@@ -216,7 +247,7 @@ router.delete("/:roomId", verifyToken, async (req, res, next) => {
     next(error);
   }
 });
-router.put("/:roomId", verifyToken, (req, res, next) => {
+router.put("/:roomId", verifyToken, async (req, res, next) => {
   if (req.user.role !== "admin") {
     return res
       .status(403)
@@ -225,54 +256,91 @@ router.put("/:roomId", verifyToken, (req, res, next) => {
 
   const { roomId } = req.params;
   if (!roomId) {
-    return res.status(400).json({ message: "โปรดกรอก รหัสห้อง" });
+    return res.status(400).json({ message: "โปรดระบุรหัสห้อง" });
   }
 
-  const { roomName, description, roomTypeId, floor, roomImg } =
-    req.body;
-  console.log(roomImg);
-  if (roomName !== undefined) {
-    if (typeof roomName !== "string" || roomName.length < 3) {
-      return res.status(400).json({ message: "ไม่พบ roomName" });
-    }
-  }
+  const { roomName, description, roomTypeId, floor, roomImg } = req.body;
+  
+  try {
+    const updateFields = [];
+    const values = [];
 
-  if (description !== undefined) {
-    if (typeof description !== "string" || description.length < 3) {
-      return res.status(400).json({ message: "ไม่พบ description" });
+    if (roomName !== undefined) {
+      if (typeof roomName !== "string" || roomName.length < 3) {
+        return res.status(400).json({ message: "ข้อมูล roomName ไม่ถูกต้อง" });
+      }
+      updateFields.push("roomName = ?");
+      values.push(roomName);
     }
-  }
+    if (description !== undefined) {
+      if (typeof description !== "string" || description.length < 3) {
+        return res.status(400).json({ message: "ข้อมูล description ไม่ถูกต้อง" });
+      }
+      updateFields.push("description = ?");
+      values.push(description);
+    }
+    if (roomTypeId !== undefined) {
+      updateFields.push("roomTypeId = ?");
+      values.push(roomTypeId);
+    }
+    if (floor !== undefined) {
+      updateFields.push("floor = ?");
+      values.push(floor);
+    }
 
-  if (roomTypeId !== undefined) {
-    if (typeof roomTypeId !== "string" || roomTypeId.length <= 0) {
-      return res.status(400).json({ message: "ไม่พบ roomTypeId" });
+    if (roomImg !== undefined && roomImg !== null && roomImg !== '') {
+      if (roomImg.startsWith('data:image')) {
+        const base64Data = Buffer.from(
+          roomImg.replace(/^data:image\/\w+;base64,/, ""),
+          "base64"
+        );
+        const type = roomImg.split(";")[0].split("/")[1];
+        const fileName = `rooms/room-${roomId}-${Date.now()}.${type}`;
+        
+        const params = {
+          Bucket: process.env.AWS_S3_BUCKET_NAME,
+          Key: fileName,
+          Body: base64Data,
+          ContentEncoding: "base64",
+          ContentType: `image/${type}`,
+          ACL: "public-read",
+        };
+        
+        const uploadResult = await s3.upload(params).promise();
+        const imageUrl = uploadResult.Location;
+        
+        updateFields.push("roomImg = ?");
+        values.push(imageUrl);
+      } 
+      else if (roomImg.startsWith('http') && roomImg.includes(process.env.AWS_S3_BUCKET_NAME)) {
+        updateFields.push("roomImg = ?");
+        values.push(roomImg);
+      } 
+      else {
+        return res.status(400).json({ message: "ข้อมูล roomImg ไม่ถูกต้อง ต้องเป็น Base64 หรือ URL จาก S3 ของระบบเท่านั้น" });
+      }
     }
-  }
 
-  if (floor !== undefined) {
-    if (typeof floor !== "string" || floor.length <= 0) {
-      return res.status(400).json({ message: "ไม่พบ floor" });
+    if (updateFields.length === 0) {
+      return res.status(400).json({ message: 'ไม่มีข้อมูลที่ถูกต้องให้อัปเดต' });
     }
-  }
-  if (roomImg !== undefined) {
-    if (typeof roomImg !== "string") {
-      return res.status(400).json({ message: "ไม่พบ รูปภาพ" });
-    }
-  }
 
-  const sql =
-    "UPDATE room SET roomName = ?, description = ?, roomTypeId = ?, floor = ?, roomImg = ? WHERE id = ?";
-  db.query(
-    sql,
-    [roomName, description, roomTypeId, floor, roomImg, roomId],
-    function (error, result) {
+    const sql = `UPDATE room SET ${updateFields.join(", ")} WHERE id = ?`;
+    values.push(roomId);
+
+    db.query(sql, values, function (error, result) {
       if (error) {
         return next(error);
       }
-      console.log("complete");
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: 'ไม่พบห้องที่ระบุให้ทำการอัปเดต' });
+      }
       res.status(200).json({ message: "อัปเดตห้องสำเร็จ" });
-    }
-  );
+    });
+
+  } catch (error) {
+    next(error);
+  }
 });
 
 router.post("/:roomId/assign", verifyToken, async (req, res, next) => {

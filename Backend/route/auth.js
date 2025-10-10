@@ -5,6 +5,8 @@ const { db } = require("../db");
 const config = require("../config");
 const { verifyToken } = require("../middleware/auth.middleware");
 const router = express.Router();
+const s3 = require("../service/s3");
+require("dotenv").config();
 
 const generateAccessToken = (user) => {
   return jwt.sign(
@@ -221,26 +223,78 @@ router.get("/id/:uid", verifyToken, (req, res, next) => {
   );
 });
 
-router.put("/edit", verifyToken, (req, res, next) => {
+router.put("/edit", verifyToken, async (req, res, next) => {
   const userId = req.user.id;
   const { firstname, lastname, address, telephone, email, userImg } = req.body;
-  let sql =
-    "UPDATE users SET firstname = ?, lastname = ?, address = ?, telephone = ?, email = ?";
-  const params = [firstname, lastname, address, telephone, email];
 
-  if (typeof userImg === "string") {
-    sql += ", userimg = ?";
-    params.push(userImg);
-  }
-  sql += " WHERE id = ?";
-  params.push(userId);
+  try {
+    const updateFields = [];
+    const values = [];
 
-  db.query(sql, params, function (error, result) {
-    if (error) {
-      return next(error);
+    const fieldsToUpdate = { firstname, lastname, address, telephone, email };
+
+    for (const key in fieldsToUpdate) {
+      if (fieldsToUpdate[key] !== undefined) {
+        updateFields.push(`${key} = ?`);
+        values.push(fieldsToUpdate[key]);
+      }
     }
+
+    if (userImg !== undefined && userImg !== null && userImg !== '') {
+
+      if (userImg.startsWith('data:image')) {
+        const base64Data = Buffer.from(
+          userImg.replace(/^data:image\/\w+;base64,/, ""),
+          "base64"
+        );
+        const type = userImg.split(";")[0].split("/")[1];
+        const fileName = `users/user-${userId}-${Date.now()}.${type}`;
+        
+        const params = {
+          Bucket: process.env.AWS_S3_BUCKET_NAME,
+          Key: fileName,
+          Body: base64Data,
+          ContentEncoding: "base64",
+          ContentType: `image/${type}`,
+          ACL: "public-read",
+        };
+        
+        const uploadResult = await s3.upload(params).promise();
+        updateFields.push("userimg = ?");
+        values.push(uploadResult.Location);
+      } 
+      else if (userImg.startsWith('http') && userImg.includes(process.env.AWS_S3_BUCKET_NAME)) {
+        updateFields.push("userimg = ?");
+        values.push(userImg);
+      } 
+      else {
+        return res.status(400).json({ message: "ข้อมูล userImg ไม่ถูกต้อง (ต้องเป็น Base64 หรือ URL จากระบบ)" });
+      }
+    }
+
+    if (updateFields.length === 0) {
+      return res.status(400).json({ message: 'ไม่มีข้อมูลให้อัปเดต' });
+    }
+
+    const sql = `UPDATE users SET ${updateFields.join(", ")} WHERE id = ?`;
+    values.push(userId);
+
+    const result = await new Promise((resolve, reject) => {
+        db.query(sql, values, (error, result) => {
+            if (error) return reject(error);
+            resolve(result);
+        });
+    });
+
+    if (result.affectedRows === 0) {
+        return res.status(404).json({ message: 'ไม่พบผู้ใช้ที่ต้องการแก้ไข' });
+    }
+
     res.status(200).json({ message: "บันทึกข้อมูลเสร็จสิ้น" });
-  });
+
+  } catch (error) {
+    next(error);
+  }
 });
 
 router.put("/change-password", verifyToken, (req, res, next) => {
