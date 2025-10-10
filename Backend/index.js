@@ -28,9 +28,6 @@ const parcelRouter = require('./route/parcel');
 const landingPageRouter = require('./route/landingpage');
 const roomtypeRouter = require('./route/roomtype');
 
-app.get('/', (req, res) => {
-  res.status(200);
-});
 
 const app = express();
 const port = 3000;
@@ -49,6 +46,9 @@ const corsOptions = {
   },
   credentials: true,
 };
+app.get('/', (req, res) => {
+  res.status(200);
+});
 
 app.use(cors({
     origin: true,

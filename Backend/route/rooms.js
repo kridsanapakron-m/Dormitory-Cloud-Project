@@ -4,7 +4,7 @@ const { db } = require('../db');
 const { verifyToken } = require('../middleware/auth.middleware');
 const { createUser } = require('./auth');
 const config = require('../config');
-
+const { sendEmail } = require('../service/send-email');
 router.get("/", verifyToken, (req, res, next) => {
   if (req.user.role !== "admin") {
     return res
@@ -228,7 +228,7 @@ router.put("/:roomId", verifyToken, (req, res, next) => {
     return res.status(400).json({ message: "โปรดกรอก รหัสห้อง" });
   }
 
-  const { roomName, description, roomTypeId, floor, userId, roomImg } =
+  const { roomName, description, roomTypeId, floor, roomImg } =
     req.body;
   console.log(roomImg);
   if (roomName !== undefined) {
@@ -275,16 +275,153 @@ router.put("/:roomId", verifyToken, (req, res, next) => {
   );
 });
 
-router.put("/:roomId/assign", verifyToken, (req, res, next) => {
+router.post("/:roomId/assign", verifyToken, async (req, res, next) => {
   const { roomId } = req.params;
   const { email } = req.body;
   if (req.user.role !== "admin") {
     return res.status(403).json({ message: "เฉพาะผู้ดูแลระบบ" });
   }
-  
-  db.query(
-    `UPDATE room SET available = 1 WHERE id = ?`,
-    [roomId],
+  try {
+    await new Promise((resolve, reject) => {
+      db.query(
+        `UPDATE room SET available = 1 WHERE id = ?`,
+        [roomId],
+        function (error, result) {
+          if (error) {
+            return reject(error);
+          }
+          if (result.affectedRows === 0) {
+            return reject({ status: 404, message: "ไม่พบห้องในระบบ" });
+          }
+          resolve(result);
+        }
+      );
+    });
+
+    const roomResult = await new Promise((resolve, reject) => {
+      db.query(
+        `SELECT renterID FROM room WHERE id = ?`,
+        [roomId],
+        (error, results) => {
+          if (error) return reject(error);
+          resolve(results);
+        }
+      );
+    });
+
+    if (!roomResult || roomResult.length === 0 || !roomResult[0].renterID) {
+      return res.status(404).json({ message: "ไม่พบ renterID สำหรับห้องนี้" });
+    }
+
+    const renterID = roomResult[0].renterID;
+
+    const userResult = await new Promise((resolve, reject) => {
+      db.query(
+        `SELECT username, id FROM users WHERE id = ?`,
+        [renterID],
+        (error, results) => {
+          if (error) return reject(error);
+          resolve(results);
+        }
+      );
+    });
+
+    if (!userResult || userResult.length === 0) {
+      return res.status(404).json({ message: "ไม่พบ username สำหรับ renterID นี้" });
+    }
+    const username = userResult[0].username;
+    const password = config.client.defaultPassword;
+    const loginUrl = config.client.url + "/login";
+
+    await sendEmail({
+      to: email,
+      subject: 'ข้อมูลบัญชีผู้ใช้งานระบบจัดการหอพักของคุณ',
+      html: `
+        <h2>ยินดีต้อนรับสู่ระบบจัดการหอพัก</h2>
+        <p>ผู้ดูแลระบบได้สร้างบัญชีผู้ใช้งานสำหรับคุณเรียบร้อยแล้ว</p>
+        <p>คุณสามารถเข้าสู่ระบบได้โดยใช้ข้อมูลดังนี้:</p>
+        <ul>
+          <li><strong>ชื่อผู้ใช้ (Username):</strong> ${username}</li>
+          <li><strong>รหัสผ่าน (Password):</strong> ${password}</li>
+        </ul>
+        <p>กรุณาเข้าสู่ระบบผ่านลิงก์ด้านล่างเพื่อเปลี่ยนรหัสผ่านของคุณ:</p>
+        <p><a href="${loginUrl}" target="_blank">เข้าสู่ระบบจัดการหอพัก</a></p>
+        <br>
+        <p>ขอบคุณ,<br>ทีมงานระบบจัดการหอพัก</p>
+      `
+    });
+    res.status(200).json({ message: `ส่งอีเมลแจ้งเตือนการมอบหมายงานไปยัง ${email} ${username}${password}สำเร็จ` });
+
+  } catch (error) {
+    if (error && error.status) {
+      return res.status(error.status).json({ message: error.message });
+    }
+    console.error("Failed to send assignment email:", error);
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการส่งอีเมล" });
+  }
+});
+
+router.post("/assignByq", verifyToken, async (req, res) => {
+  const { email, roomname } = req.body;
+
+  if (req.user.role !== "admin") {
+    return res.status(403).json({ message: "เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถดำเนินการได้" });
+  }
+  try {
+    const roomResult = await new Promise((resolve, reject) => {
+      db.query(
+        `SELECT renterID FROM room WHERE roomName = ?`,
+        [roomname],
+        (error, results) => {
+          if (error) return reject(error);
+          resolve(results);
+        }
+      );
+    });
+
+    if (!roomResult || roomResult.length === 0 || !roomResult[0].renterID) {
+      return res.status(404).json({ message: "ไม่พบ renterID สำหรับห้องนี้" });
+    }
+
+    const renterID = roomResult[0].renterID;
+
+    const userResult = await new Promise((resolve, reject) => {
+      db.query(
+        `SELECT username, id FROM users WHERE id = ?`,
+        [renterID],
+        (error, results) => {
+          if (error) return reject(error);
+          resolve(results);
+        }
+      );
+    });
+
+    if (!userResult || userResult.length === 0) {
+      return res.status(404).json({ message: "ไม่พบ username สำหรับ renterID นี้" });
+    }
+    const username = userResult[0].username;
+    const password = config.client.defaultPassword;
+    const loginUrl = config.client.url + "/login";
+    await sendEmail({
+      to: email,
+      subject: 'ข้อมูลบัญชีผู้ใช้งานระบบจัดการหอพักของคุณ',
+      html: `
+        <h2>ยินดีต้อนรับสู่ระบบจัดการหอพัก</h2>
+        <p>ผู้ดูแลระบบได้สร้างบัญชีผู้ใช้งานสำหรับคุณเรียบร้อยแล้ว</p>
+        <p>คุณสามารถเข้าสู่ระบบได้โดยใช้ข้อมูลดังนี้:</p>
+        <ul>
+          <li><strong>ชื่อผู้ใช้ (Username):</strong> ${username}</li>
+          <li><strong>รหัสผ่าน (Password):</strong> ${password}</li>
+        </ul>
+        <p>กรุณาเข้าสู่ระบบผ่านลิงก์ด้านล่างเพื่อเปลี่ยนรหัสผ่านของคุณ:</p>
+        <p><a href="${loginUrl}" target="_blank">เข้าสู่ระบบจัดการหอพัก</a></p>
+        <br>
+        <p>ขอบคุณ,<br>ทีมงานระบบจัดการหอพัก</p>
+      `
+    });
+    db.query(
+    `UPDATE room SET available = 1 WHERE roomName = ?`,
+    [roomname],
     function (error, result) {
       if (error) {
         return next(error);
@@ -293,26 +430,17 @@ router.put("/:roomId/assign", verifyToken, (req, res, next) => {
       if (result.affectedRows === 0) {
         return res.status(404).json({ message: "ไม่พบห้องในระบบ" });
       }
-      
-      res.status(200).json({ 
-        message: "แก้ไขห้องว่ามีผู้เช่าแล้ว"
-      });
-    }
-  );
+    } 
+    );
+    res.status(200).json({ message: `ส่งอีเมลแจ้งเตือนการมอบหมายงานไปยัง ${email} สำเร็จ` });
 
-  // sent mail to email with username and password
-});
-router.put("/assignByq", verifyToken, (req, res, next) => {
-  const { email } = req.body;
-
-  if (req.user.role !== "admin") {
-    return res.status(403).json({ message: "เฉพาะผู้ดูแลระบบ" });
+  } catch (error) {
+    console.error("Failed to send assignment email:", error);
+    res.status(500).json({ message: "เกิดข้อผิดพลาดในการส่งอีเมล" });
   }
-  //
-  // sent mail to userId
-  //
 
 });
+
 router.put("/:roomId/removetenant", verifyToken, async (req, res, next) => {
   const { roomId } = req.params;
 

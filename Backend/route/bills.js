@@ -9,39 +9,31 @@ const stream = require("stream");
 const qr = require("qrcode");
 const generatePayload = require("promptpay-qr");
 const router = express.Router();
+const { sendEmail } = require("../service/send-email");
 
-router.post("/", verifyToken, (req, res) => {
+router.post("/", verifyToken, async (req, res) => {
   if (req.user.role !== "admin") {
     return res
       .status(403)
       .json({ message: "You must be admin to access this" });
   }
-
-  const data = req.body;
-
-  // ✅ แปลง billMonth -> YYYY-MM-01
-  let billMonth;
+  const promiseDb = db.promise();
   try {
+    const data = req.body;
+
+    // ✅ แปลง billMonth -> YYYY-MM-01
     const bm = new Date(data.billMonth);
-    billMonth = `${bm.getFullYear()}-${String(bm.getMonth() + 1).padStart(2, "0")}-01`;
-  } catch {
-    return res.status(400).json({ message: "Invalid billMonth format" });
-  }
+    const billMonth = `${bm.getFullYear()}-${String(bm.getMonth() + 1).padStart(2, "0")}-01`;
 
-  // ✅ แปลง DueDate -> YYYY-MM-DD HH:mm:ss
-  let dueDate;
-  try {
+    // ✅ แปลง DueDate -> YYYY-MM-DD HH:mm:ss
     const dd = new Date(data.DueDate);
-    dueDate = `${dd.getFullYear()}-${String(dd.getMonth() + 1).padStart(2, "0")}-${String(dd.getDate()).padStart(2, "0")} ${String(dd.getHours()).padStart(2, "0")}:${String(dd.getMinutes()).padStart(2, "0")}:${String(dd.getSeconds()).padStart(2, "0")}`;
-  } catch {
-    return res.status(400).json({ message: "Invalid DueDate format" });
-  }
+    const dueDate = `${dd.getFullYear()}-${String(dd.getMonth() + 1).padStart(2, "0")}-${String(dd.getDate()).padStart(2, "0")} ${String(dd.getHours()).padStart(2, "0")}:${String(dd.getMinutes()).padStart(2, "0")}:${String(dd.getSeconds()).padStart(2, "0")}`;
 
-  db.query(
-    `INSERT INTO bill 
+    const insertQuery = `INSERT INTO bill 
       (RoomID, billMonth, DueDate, waterprice, electricprice, taskprice, roomprice, missDateCount, missfee, totalPrice, billStatus, additionalFees) 
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+      
+    const [insertResult] = await promiseDb.query(insertQuery, [
       data.RoomID,
       billMonth,
       dueDate,
@@ -53,16 +45,56 @@ router.post("/", verifyToken, (req, res) => {
       data.missfee ?? 0,
       data.totalPrice ?? 0,
       0, // billStatus
-      JSON.stringify(data.additionalFees || []),
-    ],
-    (ex, result) => {
-      if (ex) {
-        console.error(ex);
-        return res.status(500).json({ message: "Internal Server Error", error: ex.message });
-      }
-      return res.status(200).json({ message: "Bill created!", billid: result.insertId });
+      JSON.stringify(data.additionalFees || [])
+    ]);
+
+    const findTenantQuery = `SELECT email FROM users WHERE RoomID = ?`;
+    const [tenants] = await promiseDb.query(findTenantQuery, [data.RoomID]);
+
+    if (tenants.length > 0 && tenants[0].email) {
+      const tenantEmail = tenants[0].email;
+
+      const billingMonthFormatted = new Date(billMonth).toLocaleString('th-TH', {
+        month: 'long',
+        year: 'numeric',
+      });
+      const total = parseFloat(data.roomprice ?? 0) + 
+              parseFloat(data.waterprice ?? 0) + 
+              parseFloat(data.electricprice ?? 0) + 
+              parseFloat(data.taskprice ?? 0);
+
+      const totalPriceFormatted = total.toFixed(2);
+
+      await sendEmail({
+        to: tenantEmail,
+        subject: `แจ้งบิลค่าหอพักประจำเดือน ${billingMonthFormatted}`,
+        html: `
+          <h2>ใบแจ้งค่าหอพักประจำเดือน</h2>
+          <p>ทางหอพักขอแจ้งรายละเอียดบิลค่าหอพักประจำเดือน <strong>${billingMonthFormatted}</strong> ดังนี้:</p>
+          <ul>
+            <li><strong>ค่าห้องพัก:</strong> ${data.roomprice} บาท</li>
+            <li><strong>ค่าน้ำ:</strong> ${data.waterprice ?? 0} บาท</li>
+            <li><strong>ค่าไฟ:</strong> ${data.electricprice ?? 0} บาท</li>
+            <li><strong>ค่าบริการอื่นๆ รวม:</strong> ${data.taskprice ?? 0} บาท</li>
+            <li><strong>รวมทั้งหมด:</strong> <strong>${totalPriceFormatted}</strong> บาท</li>
+          </ul>
+          <p>กรุณาชำระค่าหอพักภายในวันที่กำหนด หากชำระแล้วโปรดเก็บหลักฐานไว้เพื่อยืนยัน</p>
+          <br>
+          <p>ขอบคุณที่ใช้บริการ,<br>ทีมงานระบบจัดการหอพัก</p>
+        `,
+      });
+      return res.status(200).json({ message: "Bill created and email sent successfully!"});
+    } else {
+      return res.status(200).json({ message: "Bill created, but no tenant email found to send notification."});
     }
-  );
+
+  } catch (error) {
+    console.error(error);
+    if (error instanceof TypeError || error.message.includes("Invalid Date")) {
+        return res.status(400).json({ message: "Invalid date format provided." });
+    }
+    return res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
 });
 
 
