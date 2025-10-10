@@ -192,7 +192,7 @@ const TenantsPage = () => {
     if (!room) return;
     try {
       const res = await fetchData(`/rooms/${room.id}/assign`, {
-        method: "PUT",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: newTenantEmail }),
       });

@@ -195,7 +195,7 @@ const AdminQueue = () => {
 
     try {
       const res = await apiFetch(`/rooms/${selectedRoom}/assign`, {
-        method: "PUT",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
