@@ -46,15 +46,12 @@ const corsOptions = {
   },
   credentials: true,
 };
-app.get('/', (req, res) => {
-  res.status(200);
-});
 
 app.use(cors({
     origin: true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', "X-Target-Service"]
 }));
 
 app.use(express.json({ limit: "50mb" }));
@@ -66,16 +63,16 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use('/auth', authRouter);
-app.use('/rooms', roomsRouter);
-app.use('/queue', queueRouter);
-app.use('/tasks', tasksRouter);
-app.use('/bills', billsRouter);
-app.use('/main', mainRouter);
-app.use('/chat', chatRouter);
-app.use('/parcel', parcelRouter);
-app.use('/landingpage', landingPageRouter);
-app.use('/roomtype', roomtypeRouter);
+app.use('/api/auth', authRouter);
+app.use('/api/rooms', roomsRouter);
+app.use('/api/queue', queueRouter);
+app.use('/api/tasks', tasksRouter);
+app.use('/api/bills', billsRouter);
+app.use('/api/main', mainRouter);
+app.use('/api/chat', chatRouter);
+app.use('/api/parcel', parcelRouter);
+app.use('/api/landingpage', landingPageRouter);
+app.use('/api/roomtype', roomtypeRouter);
 
 // Swagger setup
 const swaggerOptions = {

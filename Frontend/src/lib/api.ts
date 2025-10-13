@@ -5,6 +5,7 @@ export async function apiFetch(path: string, options?: RequestInit): Promise<Res
     ...options,
     headers: {
       "Content-Type": "application/json",
+      "X-Target-Service": "backend",
       ...(options?.headers || {}),
     },
     credentials: 'include',
